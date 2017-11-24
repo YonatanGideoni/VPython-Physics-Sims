@@ -39,6 +39,8 @@ chargeList = [ElectricCharge(0.5, 1, vector(-2, 0, 0)), ElectricCharge(0.5, -1, 
 kCoulomb = 8.987551E+9
 xRange = [-5,5]
 yRange = [-5,5]
+dt = 0.2
+
 
 ###FUNCTIONS####
 def fieldKinematics(chargeList, obj, dt=0):
@@ -48,8 +50,7 @@ def fieldKinematics(chargeList, obj, dt=0):
         
         if mag(r) < chargeObj.obj.radius: #in case for some reason objects intersect
             return False
-            
-        obj.e =     
+        
         force += kCoulomb * obj.charge * chargeObj.charge / mag(r) ** 2 * hat(r)  # coulomb's law
         
     obj.a = force/obj.m
@@ -70,8 +71,7 @@ def kinematics(chargeList, obj, dt=0):
         
         if mag(r) < chargeObj.obj.radius: #in case for some reason objects intersect
             return False
-            
-        obj.e =     
+              
         force += kCoulomb * obj.charge * chargeObj.charge / mag(r) ** 2 * hat(r)  # coulomb's law
         
     obj.a = force/obj.m
@@ -80,27 +80,56 @@ def kinematics(chargeList, obj, dt=0):
         obj.v += obj.a*dt
         obj.obj.pos += obj.v*dt
     else:
-        obj.v += obj.a*0.2  #default dt=0.1 if not defined
-        obj.obj.pos += obj.v*0.2
+        obj.v += obj.a*0.02  #default dt=0.1 if not defined
+        obj.obj.pos += obj.v*0.02
     
     return True
 
-def inRange(obj):
+def inRange(obj):   #checkes if obj is inside allowed range
     if obj.obj.pos.x > xRange[0] and obj.obj.pos.x < xRange[1] and obj.obj.pos.y > yRange[0] and obj.obj.pos.y < yRange[1]:
         return True
     return False
 
+def forceInEdgeOfRange(baseVect, spanningVect, mul=1): #forces vector to be inside allowed range
+    squeezedVect = baseVect + spanningVect*mul
+    
+    while squeezedVect.x > xRange[0] and squeezedVect.x < xRange[1] and squeezedVect.y > yRange[0] and squeezedVect.y < yRange[1]:
+        mul *= 1.05
+        squeezedVect = baseVect + spanningVect*mul
+    
+    return baseVect + spanningVect*mul/1.05
+    
 
-def setCharge():
-    tracker = TestCharge(scene.mouse.pos) #creates a tracking charge at the mous position
-    dt = 0.2
+def setCharge(position):
+    global dt
+    tracker = TestCharge(position) #creates a charge at the mous position
+    t = 0
+    
+    while inRange(tracker) and kinematics(chargeList, tracker):
+        rate(1000)
+        t += dt
+        
+def drawField(position):
+    global dt
+    tracker = TestCharge(position) #creates a tracking charge at the mous position
     t = 0
     
     while inRange(tracker) and fieldKinematics(chargeList, tracker, dt):
         rate(1000)
         t += dt
-        
+
+for particle in chargeList:
+    angle = 0
+    while angle < 2*pi:    #draws the fields around the positive charge
+        if particle.charge > 0:       
+                chargePos = particle.obj.pos + particle.obj.radius*1.05*vector(cos(angle),sin(angle),0)            
+        else:
+            chargePos = forceInEdgeOfRange(particle.obj.pos, vector(cos(angle),sin(angle),0))
+        drawField(chargePos)
+        angle += pi/8
+    
+
 while True:
     ev = scene.waitfor('click keydown')
     if ev.event == 'click':
-         setCharge()
+         setCharge(scene.mouse.pos)
