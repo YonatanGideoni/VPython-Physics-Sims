@@ -33,7 +33,7 @@ class TestCharge(ElectricCharge):
         self.initNullParams()
         
 # list of charged objects, for easier calculations with kinematics and stuff
-chargeList = [ElectricCharge(0.5, 1, vector(-2, 0, 0)), ElectricCharge(0.5, -1, vector(2, 0, 0))]
+chargeList = [ElectricCharge(0.5, 1, vector(-2, 0, 0)), ElectricCharge(0.5, 1, vector(2, 0, 0)), ElectricCharge(0.5, -1, vector(0, -2, 0)),ElectricCharge(0.5, -1, vector(0, 2, 0))]
 
 ####CONSTANTS#####
 kCoulomb = 8.987551E+9
@@ -52,9 +52,9 @@ def fieldKinematics(chargeList, obj, dt=0):
             return False
         
         force += kCoulomb * obj.charge * chargeObj.charge / mag(r) ** 2 * hat(r)  # coulomb's law
-        
+    
     obj.a = force/obj.m
-        
+    
     if dt is not 0:
         obj.v = obj.a*dt
         obj.obj.pos += obj.v*dt
@@ -62,6 +62,9 @@ def fieldKinematics(chargeList, obj, dt=0):
         obj.v = obj.a*0.2  #default dt=0.1 if not defined
         obj.obj.pos += obj.v*0.2
     
+    if mag(obj.v) < 0.01:
+        return False
+        
     return True
         
 def kinematics(chargeList, obj, dt=0):
@@ -83,6 +86,9 @@ def kinematics(chargeList, obj, dt=0):
         obj.v += obj.a*0.02  #default dt=0.1 if not defined
         obj.obj.pos += obj.v*0.02
     
+    if mag(obj.v) < 0.01:
+        return False
+        
     return True
 
 def inRange(obj):   #checkes if obj is inside allowed range
