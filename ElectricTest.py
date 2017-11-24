@@ -8,7 +8,7 @@ class PhysicsObject:  # main class for all physical objects
         self.m = mass
         self.a = acceleration
         self.obj = obj(make_trail=False) #has to be initialized to be activated later
-
+        
     def initNullParams(self):
         self.v = vector(0,0,0)
         self.a = vector(0,0,0)
@@ -29,6 +29,7 @@ class TestCharge(ElectricCharge):
         ElectricCharge.__init__(self,Radius, 1E-10, position)
         self.obj.color = color.white
         self.obj.make_trail = True
+        
         
         self.initNullParams()
         
@@ -86,7 +87,7 @@ def kinematics(chargeList, obj, dt=0):
         obj.v += obj.a*0.02  #default dt=0.1 if not defined
         obj.obj.pos += obj.v*0.02
     
-    if mag(obj.v) < 0.01:
+    if mag(obj.v) < 0.0005:
         return False
         
     return True
@@ -111,6 +112,8 @@ def setCharge(position):
     tracker = TestCharge(position) #creates a charge at the mous position
     t = 0
     
+    tracker.obj.trail_color = color.green
+    
     while inRange(tracker) and kinematics(chargeList, tracker):
         rate(1000)
         t += dt
@@ -132,7 +135,7 @@ for particle in chargeList:
         else:
             chargePos = forceInEdgeOfRange(particle.obj.pos, vector(cos(angle),sin(angle),0))
         drawField(chargePos)
-        angle += pi/8
+        angle += pi/10
     
 
 while True:
