@@ -37,51 +37,70 @@ chargeList = [ElectricCharge(0.5, 1, vector(-2, 0, 0)), ElectricCharge(0.5, -1, 
 
 ####CONSTANTS#####
 kCoulomb = 8.987551E+9
-xRange = [-3,3]
-yRange = [-3,3]
+xRange = [-5,5]
+yRange = [-5,5]
 
 ###FUNCTIONS####
+def fieldKinematics(chargeList, obj, dt=0):
+    force = vector(0, 0, 0)
+    for chargeObj in chargeList:
+        r = obj.obj.pos - chargeObj.obj.pos
+        
+        if mag(r) < chargeObj.obj.radius: #in case for some reason objects intersect
+            return False
+            
+        obj.e =     
+        force += kCoulomb * obj.charge * chargeObj.charge / mag(r) ** 2 * hat(r)  # coulomb's law
+        
+    obj.a = force/obj.m
+        
+    if dt is not 0:
+        obj.v = obj.a*dt
+        obj.obj.pos += obj.v*dt
+    else:
+        obj.v = obj.a*0.2  #default dt=0.1 if not defined
+        obj.obj.pos += obj.v*0.2
+    
+    return True
+        
 def kinematics(chargeList, obj, dt=0):
     force = vector(0, 0, 0)
     for chargeObj in chargeList:
         r = obj.obj.pos - chargeObj.obj.pos
         
-        if mag(r) == 0: #in case for some reason objects intersect
-            r = vector(0.01,0.01,0.01)
+        if mag(r) < chargeObj.obj.radius: #in case for some reason objects intersect
+            return False
             
-            
+        obj.e =     
         force += kCoulomb * obj.charge * chargeObj.charge / mag(r) ** 2 * hat(r)  # coulomb's law
         
     obj.a = force/obj.m
-    
+        
     if dt is not 0:
         obj.v += obj.a*dt
         obj.obj.pos += obj.v*dt
     else:
-        obj.v += obj.a*0.1  #default dt=0.1 if not defined
-        obj.obj.pos += obj.v*0.1
-        
+        obj.v += obj.a*0.2  #default dt=0.1 if not defined
+        obj.obj.pos += obj.v*0.2
+    
+    return True
 
 def inRange(obj):
     if obj.obj.pos.x > xRange[0] and obj.obj.pos.x < xRange[1] and obj.obj.pos.y > yRange[0] and obj.obj.pos.y < yRange[1]:
         return True
     return False
 
-def setCharge(ev):
+
+def setCharge():
     tracker = TestCharge(scene.mouse.pos) #creates a tracking charge at the mous position
-    dt = 0.0001
+    dt = 0.2
     t = 0
     
-    while inRange(tracker) and t < 1:
-        kinematics(chargeList, tracker, dt)
+    while inRange(tracker) and fieldKinematics(chargeList, tracker, dt):
+        rate(1000)
         t += dt
         
-scene.bind("mouseup", setCharge) #actually makes it do the thing
-
-tracker = TestCharge(vector(0,1,0)) #creates a tracking charge at the mous position
-dt = 0.00001
-t = 0
-
-while inRange(tracker) and t<1:
-    kinematics(chargeList, tracker, dt)
-    t += dt
+while True:
+    ev = scene.waitfor('click keydown')
+    if ev.event == 'click':
+         setCharge()
