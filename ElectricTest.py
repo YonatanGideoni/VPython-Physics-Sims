@@ -1,6 +1,8 @@
 GlowScript 2.6 VPython
 
 
+scene.width = scene.height = 800
+
 ###OBJECT CLASSES###
 class PhysicsObject:  # main class for all physical objects
     def __init__(self, mass, velocity, acceleration, obj):
@@ -25,11 +27,10 @@ class ElectricCharge(PhysicsObject):
             self.obj.color = color.red
 
 class TestCharge(ElectricCharge):   
-    def __init__(self, position, Radius=0.001):
+    def __init__(self, position, Radius=0.00001):
         ElectricCharge.__init__(self,Radius, 1E-10, position)
         self.obj.color = color.white
         self.obj.make_trail = True
-        
         
         self.initNullParams()
         
@@ -40,6 +41,7 @@ chargeList = [ElectricCharge(0.5, 1, vector(-2, 0, 0)), ElectricCharge(0.5, 1, v
 kCoulomb = 8.987551E+9
 xRange = [-5,5]
 yRange = [-5,5]
+zRange = [-5,5]
 dt = 0.2
 
 
@@ -63,7 +65,7 @@ def fieldKinematics(chargeList, obj, dt=0):
         obj.v = obj.a*0.2  #default dt=0.1 if not defined
         obj.obj.pos += obj.v*0.2
     
-    if mag(obj.v) < 0.01:
+    if mag(obj.v) < 0.0001:
         return False
         
     return True
@@ -84,8 +86,8 @@ def kinematics(chargeList, obj, dt=0):
         obj.v += obj.a*dt
         obj.obj.pos += obj.v*dt
     else:
-        obj.v += obj.a*0.02  #default dt=0.1 if not defined
-        obj.obj.pos += obj.v*0.02
+        obj.v += obj.a*0.005  #default dt=0.1 if not defined
+        obj.obj.pos += obj.v*0.005
     
     if mag(obj.v) < 0.0005:
         return False
@@ -93,14 +95,14 @@ def kinematics(chargeList, obj, dt=0):
     return True
 
 def inRange(obj):   #checkes if obj is inside allowed range
-    if obj.obj.pos.x > xRange[0] and obj.obj.pos.x < xRange[1] and obj.obj.pos.y > yRange[0] and obj.obj.pos.y < yRange[1]:
+    if obj.obj.pos.x > xRange[0] and obj.obj.pos.x < xRange[1] and obj.obj.pos.y > yRange[0] and obj.obj.pos.y < yRange[1] and obj.obj.pos.z > zRange[0] and obj.obj.pos.z < zRange[1]:
         return True
     return False
 
 def forceInEdgeOfRange(baseVect, spanningVect, mul=1): #forces vector to be inside allowed range
     squeezedVect = baseVect + spanningVect*mul
     
-    while squeezedVect.x > xRange[0] and squeezedVect.x < xRange[1] and squeezedVect.y > yRange[0] and squeezedVect.y < yRange[1]:
+    while squeezedVect.x > xRange[0] and squeezedVect.x < xRange[1] and squeezedVect.y > yRange[0] and squeezedVect.y < yRange[1] and squeezedVect.z > zRange[0] and squeezedVect.z < zRange[1]:
         mul *= 1.05
         squeezedVect = baseVect + spanningVect*mul
     
@@ -120,7 +122,7 @@ def setCharge(position):
         
 def drawField(position):
     global dt
-    tracker = TestCharge(position) #creates a tracking charge at the mous position
+    tracker = TestCharge(position)
     t = 0
     
     while inRange(tracker) and fieldKinematics(chargeList, tracker, dt):
@@ -128,14 +130,17 @@ def drawField(position):
         t += dt
 
 for particle in chargeList:
-    angle = 0
-    while angle < 2*pi:    #draws the fields around the positive charge
-        if particle.charge > 0:       
-                chargePos = particle.obj.pos + particle.obj.radius*1.05*vector(cos(angle),sin(angle),0)            
-        else:
-            chargePos = forceInEdgeOfRange(particle.obj.pos, vector(cos(angle),sin(angle),0))
-        drawField(chargePos)
-        angle += pi/10
+    angleXY = 0
+    while angleXY < 2*pi:    #draws the fields around the positive charge
+        angleXZ = 0
+        while angleXZ < 2*pi:
+            if particle.charge > 0:       
+                    chargePos = particle.obj.pos + particle.obj.radius*1.05*vector(cos(angleXY)*cos(angleXZ),sin(angleXY),sin(angleXZ))            
+            else:
+                chargePos = forceInEdgeOfRange(particle.obj.pos, vector(cos(angleXY)*cos(angleXZ),sin(angleXY),sin(angleXZ)))
+            drawField(chargePos)
+            angleXZ += pi/4
+        angleXY += pi/4
     
 
 while True:
