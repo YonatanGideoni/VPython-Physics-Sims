@@ -59,7 +59,11 @@ class ChargedSlab(ElectricCharge):
         zPos = random.sample(numOfCharges)
 
         while chargeNum < numOfCharges:
-            chargeSign = random.choice([-1, 1, 1, 1])  # 1 if chargeNum % 2 == 0 else -1  # equally distribute positive and negative charges
+            # various distributions of positive and negative charges
+            # chargeSign = random.choice([-1, 1, 1, 1])  # 75% positive 25% negative
+            # chargeSign = random.choice([-1, 1, 1, 1, 1, 1, 1, 1, 1, 1])  # 90% positive 10% negative
+            # chargeSign = 1 if chargeNum % 2 == 0 else -1 # equally distribute positive and negative charges
+            chargeSign = 1    #all positive
 
             chargePos = vector(xPos[chargeNum] * (self.xBorders[1] - self.xBorders[0]) * random.choice([-1, 1]),
                                yPos[chargeNum] * (self.yBorders[1] - self.yBorders[0]) * random.choice([-1, 1]),
@@ -69,7 +73,6 @@ class ChargedSlab(ElectricCharge):
             self.slabParticles.append(
                 ElectricCharge(2 * self.volume / numOfCharges, chargeSign * 1E-7 * self.charge / self.volume,
                                chargePos))
-
             chargeNum += 1
 
 
@@ -127,11 +130,11 @@ def updatePos(objList):
         obj.obj.pos = obj.nextPos
 
 
-def detectCollision(obj, xRange, yRange, zRange):   # elastic collision with the face's
+def detectCollision(obj, xRange, yRange, zRange):  # elastic collision with the face's
     if obj.obj.pos.x < xRange[0] or obj.obj.pos.x > xRange[1]:
         obj.v *= 0.9
         obj.v.x *= -1
-        if obj.obj.pos.x < xRange[0]:   # stops out of bounds errors
+        if obj.obj.pos.x < xRange[0]:  # stops out of bounds errors
             obj.obj.pos.x = xRange[0]
         else:
             obj.obj.pos.x = xRange[1]
@@ -161,14 +164,14 @@ def inRange(obj, xRange, yRange, zRange):  # checks if obj is inside allowed ran
 slab = ChargedSlab(vector(0, 0, 0), vector(1, 1, 1), 100)
 slab.populateCharges(100)
 
-while t < 10:
+while t < 1000:
     rate(10000000)
     t += dt
 
     if 1.5 > t > 0.3:
-        dt = 0.0005
+        dt = 0.001
     elif t > 1.5:
-        dt = 0.0001
+        dt = 0.0005
 
     Ek = 0
     for particle in slab.slabParticles:
