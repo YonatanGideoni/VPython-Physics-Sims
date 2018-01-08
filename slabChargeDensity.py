@@ -188,8 +188,8 @@ def potentialEnergy(chargeList):
     return Ep
 
 
-def findMinDist(objList):
-    minDist = 1000000000
+def setDt(objList):
+    dt = 1000000000
     i = 0
     j = 0
 
@@ -204,12 +204,14 @@ def findMinDist(objList):
                 j += 1
                 continue
 
-            if mag(objList[i].obj.pos - objList[j].obj.pos) < minDist:
-                minDist = mag(objList[i].obj.pos - objList[j].obj.pos)
+            if mag(objList[i].obj.pos - objList[j].obj.pos) < dt and objList[i].charge * objList[j].charge < 0:
+                dt = mag(objList[i].obj.pos - objList[j].obj.pos)
+            elif mag(objList[i].obj.pos - objList[j].obj.pos) < dt / 3:
+                dt = 3 * mag(objList[i].obj.pos - objList[j].obj.pos)
 
             j += 1
         i += 1
-    return minDist
+    return dt
 
 
 def mergeCharges(particle1, particle2):
@@ -266,7 +268,7 @@ slab.populateCharges(100)
 while t < 1000:
     rate(10000000)
 
-    dt = min(findMinDist(slab.slabParticles) ** 2, 0.003)
+    dt = min(setDt(slab.slabParticles) ** 2, 0.003)
 
     t += dt
 
