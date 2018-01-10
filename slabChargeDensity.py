@@ -66,9 +66,9 @@ class ChargedSlab(ElectricCharge):
         while chargeNum < numOfCharges:
             # various distributions of positive and negative charges
             # chargeSign = random.choice([-1, 1, 1, 1])  # 75% positive 25% negative
-            chargeSign = random.choice([-1, 1, 1, 1, 1, 1, 1, 1, 1, 1])  # 90% positive 10% negative
+            # chargeSign = random.choice([-1, 1, 1, 1, 1, 1, 1, 1, 1, 1])  # 90% positive 10% negative
             # chargeSign = 1 if chargeNum % 2 == 0 else -1  # equally distribute positive and negative charges
-            # chargeSign = 1  # all positive
+            chargeSign = 1  # all positive
 
             chargePos = vector(xPos[chargeNum] * (self.xBorders[1] - self.xBorders[0]) * random.choice([-1, 1]),
                                yPos[chargeNum] * (self.yBorders[1] - self.yBorders[0]) * random.choice([-1, 1]),
@@ -76,20 +76,21 @@ class ChargedSlab(ElectricCharge):
                                    [-1, 1])) * 0.5 + self.obj.pos
 
             self.slabParticles.append(
-                ElectricCharge(2 * self.volume / numOfCharges, chargeSign * 1E-7 * self.charge / self.volume,
+                ElectricCharge(2 * self.volume / numOfCharges, chargeSign * 1.602E-19,
                                chargePos))
+            self.slabParticles[-1].m = 9.109E-31
             chargeNum += 1
 
 
 #####STARTING PARAMETERS######
 t = 0
+negativeExist = true
 
 ####CONSTANTS#####
 kCoulomb = 8.987551E+9
 xMaxRange = [-5, 5]
 yMaxRange = [-5, 5]
 zMaxRange = [-5, 5]
-springConst = 1E-20
 
 
 ###FUNCTIONS####
@@ -116,17 +117,9 @@ def kinematics(chargeList, obj, xRange, yRange, zRange, dt=0):
         detectCollision(obj, xRange, yRange, zRange)
         obj.nextPos = obj.obj.pos + obj.v * dt
     else:
-        obj.v += obj.a * 0.005  # default dt=0.1 if not defined
+        obj.v += obj.a * 5E-5  # default dt if not defined
         detectCollision(obj, xRange, yRange, zRange)
-        obj.nextPos = obj.obj.pos + obj.v * 0.005
-
-    if mag(obj.v) < 0.0005:
-        return False
-
-    if mag(obj.v) > 100:
-        obj.v /= 10
-
-    return True
+        obj.nextPos = obj.obj.pos + obj.v * 5E-5
 
 
 def updatePos(objList):
@@ -136,21 +129,21 @@ def updatePos(objList):
 
 def detectCollision(obj, xRange, yRange, zRange):  # elastic collision with the face's
     if obj.obj.pos.x < xRange[0] or obj.obj.pos.x > xRange[1]:
-        obj.v *= 0.9
+        obj.v *= 0.7
         obj.v.x *= -1
         if obj.obj.pos.x < xRange[0]:  # stops out of bounds errors
             obj.obj.pos.x = xRange[0]
         else:
             obj.obj.pos.x = xRange[1]
     if obj.obj.pos.y < yRange[0] or obj.obj.pos.y > yRange[1]:
-        obj.v *= 0.9
+        obj.v *= 0.7
         obj.v.y *= -1
         if obj.obj.pos.y < yRange[0]:
             obj.obj.pos.y = yRange[0]
         else:
             obj.obj.pos.y = yRange[1]
     if obj.obj.pos.z < zRange[0] or obj.obj.pos.z > zRange[1]:
-        obj.v *= 0.9
+        obj.v *= 0.7
         obj.v.z *= -1
         if obj.obj.pos.z < zRange[0]:
             obj.obj.pos.z = zRange[0]
@@ -206,12 +199,12 @@ def setDt(objList):
 
             if mag(objList[i].obj.pos - objList[j].obj.pos) < dt and objList[i].charge * objList[j].charge < 0:
                 dt = mag(objList[i].obj.pos - objList[j].obj.pos)
-            elif mag(objList[i].obj.pos - objList[j].obj.pos) < dt / 3:
-                dt = 3 * mag(objList[i].obj.pos - objList[j].obj.pos)
+            elif mag(objList[i].obj.pos - objList[j].obj.pos) < dt / 5:
+                dt = 5 * mag(objList[i].obj.pos - objList[j].obj.pos)
 
             j += 1
         i += 1
-    return dt
+    return dt ** 2
 
 
 def mergeCharges(particle1, particle2):
@@ -230,6 +223,7 @@ def mergeCharges(particle1, particle2):
     particle1.obj.radius = (particle1.obj.radius ** 3 + particle2.obj.radius ** 3) ** 0.333333
     # calculating new radius based on sum of volume's
     particle1.v = (particle1.m * particle1.v + particle2.m * particle2.v) / (particle1.m + particle2.m)
+    # conservation of momentum
     particle1.obj.pos = (particle1.m * particle1.obj.pos + particle2.m * particle2.obj.pos) / (
         particle1.m + particle2.m)
     particle1.nextPos = (particle1.m * particle1.nextPos + particle2.m * particle2.nextPos) / (
@@ -251,9 +245,7 @@ def findParticlesToMerge(chargeList):
                 j += 1
                 continue
 
-            r_mag = mag(chargeList[i].obj.pos - chargeList[j].obj.pos)
-
-            if r_mag < 0.0075:
+            if mag(chargeList[i].obj.pos - chargeList[j].obj.pos) < 0.008:
                 mergeCharges(chargeList[i], chargeList[j])
                 chargeList[j].obj.visible = false
                 del chargeList[j]
@@ -262,13 +254,30 @@ def findParticlesToMerge(chargeList):
         i += 1
 
 
+def negativeChargesExist(chargeList):
+    for particle in chargeList:
+        if particle.charge < 0:
+            return true
+    return false
+
+
 slab = ChargedSlab(vector(0, 0, 0), vector(1, 1, 1), 100)
 slab.populateCharges(100)
 
 while t < 1000:
     rate(10000000)
 
-    dt = min(setDt(slab.slabParticles) ** 2, 0.003)
+    if not negativeExist:
+        if t < 3E-2:
+            dt = 5E-5
+        elif 3E-2 < t < 1.5E-1:
+            dt = 3E-5
+        else:
+            dt = 8E-6
+    else:
+        dt = min(setDt(slab.slabParticles)**3, 0.00001)
+        negativeExist = negativeChargesExist(slab.slabParticles)
+        # in order to not redundantly run the function once value is toggled
 
     t += dt
 
