@@ -54,6 +54,9 @@ class ChargedSlab(ElectricCharge):
         self.zBorders = [center.z - self.obj.size.z / 2, center.z + self.obj.size.z / 2]
         self.volume = (self.xBorders[1] - self.xBorders[0]) * (self.yBorders[1] - self.yBorders[0]) * (
             self.zBorders[1] - self.zBorders[0])
+        self.diagonalLength = sqrt(
+            (self.xBorders[1] - self.xBorders[0]) ** 2 + (self.yBorders[1] - self.yBorders[0]) ** 2 + (
+                self.zBorders[1] - self.zBorders[0]) ** 2)
         self.slabParticles = []
 
     def populateCharges(self, numOfCharges):
@@ -85,6 +88,7 @@ class ChargedSlab(ElectricCharge):
 #####STARTING PARAMETERS######
 t = 0
 negativeExist = true
+Ek = 1
 
 ####CONSTANTS#####
 kCoulomb = 8.987551E+9
@@ -204,7 +208,7 @@ def setDt(objList):
 
             j += 1
         i += 1
-    return dt ** 2
+    return dt
 
 
 def mergeCharges(particle1, particle2):
@@ -222,7 +226,11 @@ def mergeCharges(particle1, particle2):
     particle1.m += particle2.m
     particle1.obj.radius = (particle1.obj.radius ** 3 + particle2.obj.radius ** 3) ** 0.333333
     # calculating new radius based on sum of volume's
-    particle1.v = (particle1.m * particle1.v + particle2.m * particle2.v) / (particle1.m + particle2.m)
+    particle1.v = sqrt(
+        (particle1.m * mag(particle1.v) ** 2 + particle2.m * mag(particle2.v) ** 2) / (particle1.m + particle2.m)) * ((
+                                                                                                                          particle1.m * particle1.v + particle2.m * particle2.v) / (
+                                                                                                                          particle1.m + particle2.m)) / mag(
+        (particle1.m * particle1.v + particle2.m * particle2.v) / (particle1.m + particle2.m))
     # conservation of momentum
     particle1.obj.pos = (particle1.m * particle1.obj.pos + particle2.m * particle2.obj.pos) / (
         particle1.m + particle2.m)
@@ -268,14 +276,14 @@ while t < 1000:
     rate(10000000)
 
     if not negativeExist:
-        if t < 3E-2:
-            dt = 5E-5
-        elif 3E-2 < t < 1.5E-1:
-            dt = 3E-5
+        if t < 2.5E-2:
+            dt = max(5E-5, min((2E+9) * sqrt(Ek), 2E-4))
+        elif 2.5E-2 < t < 1.5E-1:
+            dt = max(3E-5, min((2E+9) * sqrt(Ek), 1E-4))
         else:
-            dt = 8E-6
+            dt = max(9E-6, min((2E+9) * sqrt(Ek), 1E-4))
     else:
-        dt = min(setDt(slab.slabParticles)**3, 0.00001)
+        dt = max(setDt(slab.slabParticles) ** 5, 2E-6)
         negativeExist = negativeChargesExist(slab.slabParticles)
         # in order to not redundantly run the function once value is toggled
 
