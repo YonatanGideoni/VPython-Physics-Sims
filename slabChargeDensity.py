@@ -1,5 +1,6 @@
 from visual import *
 from visual.graph import *
+import time
 
 # Program forked off of ElectricTest for base functionality
 # Test program to find out slab's charge density and distribution.
@@ -31,6 +32,7 @@ class PhysicsObject:  # main class for all physical objects
         self.m = 1
         self.storedEnergy = 0
         self.nextPos = self.obj.pos
+        self.pos = self.nextPos
 
 
 class ElectricCharge(PhysicsObject):  # main class for electric charges
@@ -104,7 +106,7 @@ def kinematics(chargeList, obj, xRange, yRange, zRange, dt=0):
         if chargeObj.charge == 0:
             continue
 
-        r = obj.obj.pos - chargeObj.obj.pos
+        r = obj.pos - chargeObj.pos
         r_mag = mag(r)
         if r_mag == 0:
             continue
@@ -119,44 +121,49 @@ def kinematics(chargeList, obj, xRange, yRange, zRange, dt=0):
     if dt is not 0:
         obj.v += obj.a * dt
         detectCollision(obj, xRange, yRange, zRange)
-        obj.nextPos = obj.obj.pos + obj.v * dt
+        obj.nextPos = obj.pos + obj.v * dt
     else:
         obj.v += obj.a * 5E-5  # default dt if not defined
         detectCollision(obj, xRange, yRange, zRange)
-        obj.nextPos = obj.obj.pos + obj.v * 5E-5
+        obj.nextPos = obj.pos + obj.v * 5E-5
 
 
 def updatePos(objList):
+    for obj in objList:
+        obj.pos = obj.nextPos
+
+
+def updateRealPos(objList):
     for obj in objList:
         obj.obj.pos = obj.nextPos
 
 
 def detectCollision(obj, xRange, yRange, zRange):  # elastic collision with the face's
-    if obj.obj.pos.x < xRange[0] or obj.obj.pos.x > xRange[1]:
+    if obj.pos.x < xRange[0] or obj.pos.x > xRange[1]:
         obj.v *= 0.7
         obj.v.x *= -1
-        if obj.obj.pos.x < xRange[0]:  # stops out of bounds errors
-            obj.obj.pos.x = xRange[0]
+        if obj.pos.x < xRange[0]:  # stops out of bounds errors
+            obj.pos.x = xRange[0]
         else:
-            obj.obj.pos.x = xRange[1]
-    if obj.obj.pos.y < yRange[0] or obj.obj.pos.y > yRange[1]:
+            obj.pos.x = xRange[1]
+    if obj.pos.y < yRange[0] or obj.pos.y > yRange[1]:
         obj.v *= 0.7
         obj.v.y *= -1
-        if obj.obj.pos.y < yRange[0]:
-            obj.obj.pos.y = yRange[0]
+        if obj.pos.y < yRange[0]:
+            obj.pos.y = yRange[0]
         else:
-            obj.obj.pos.y = yRange[1]
-    if obj.obj.pos.z < zRange[0] or obj.obj.pos.z > zRange[1]:
+            obj.pos.y = yRange[1]
+    if obj.pos.z < zRange[0] or obj.pos.z > zRange[1]:
         obj.v *= 0.7
         obj.v.z *= -1
-        if obj.obj.pos.z < zRange[0]:
-            obj.obj.pos.z = zRange[0]
+        if obj.pos.z < zRange[0]:
+            obj.pos.z = zRange[0]
         else:
-            obj.obj.pos.z = zRange[1]
+            obj.pos.z = zRange[1]
 
 
 def inRange(obj, xRange, yRange, zRange):  # checks if obj is inside allowed range
-    if xRange[1] > obj.obj.pos.x > xRange[0] and yRange[1] > obj.obj.pos.y > yRange[0] and zRange[1] > obj.obj.pos.y > \
+    if xRange[1] > obj.pos.x > xRange[0] and yRange[1] > obj.pos.y > yRange[0] and zRange[1] > obj.pos.y > \
             zRange[0]:
         return True
     return False
@@ -176,7 +183,7 @@ def potentialEnergy(chargeList):
             continue
 
         while j < len(chargeList):
-            r_mag = mag(chargeList[i].obj.pos - chargeList[j].obj.pos)
+            r_mag = mag(chargeList[i].pos - chargeList[j].pos)
 
             Ep += kCoulomb * chargeList[i].charge * chargeList[j].charge / r_mag
 
@@ -212,7 +219,7 @@ def setDt(objList):
 
 
 def mergeCharges(particle1, particle2):
-    particle1.storedEnergy = kCoulomb * particle1.charge * particle2.charge / mag(particle1.obj.pos - particle2.obj.pos)
+    particle1.storedEnergy = kCoulomb * particle1.charge * particle2.charge / mag(particle1.pos - particle2.pos)
 
     particle1.charge += particle2.charge
 
@@ -232,7 +239,7 @@ def mergeCharges(particle1, particle2):
                                                                                                                           particle1.m + particle2.m)) / mag(
         (particle1.m * particle1.v + particle2.m * particle2.v) / (particle1.m + particle2.m))
     # conservation of momentum
-    particle1.obj.pos = (particle1.m * particle1.obj.pos + particle2.m * particle2.obj.pos) / (
+    particle1.pos = (particle1.m * particle1.pos + particle2.m * particle2.pos) / (
         particle1.m + particle2.m)
     particle1.nextPos = (particle1.m * particle1.nextPos + particle2.m * particle2.nextPos) / (
         particle1.m + particle2.m)
@@ -253,7 +260,7 @@ def findParticlesToMerge(chargeList):
                 j += 1
                 continue
 
-            if mag(chargeList[i].obj.pos - chargeList[j].obj.pos) < 0.008:
+            if mag(chargeList[i].pos - chargeList[j].pos) < 0.008:
                 mergeCharges(chargeList[i], chargeList[j])
                 chargeList[j].obj.visible = false
                 del chargeList[j]
@@ -272,8 +279,13 @@ def negativeChargesExist(chargeList):
 slab = ChargedSlab(vector(0, 0, 0), vector(1, 1, 1), 100)
 slab.populateCharges(100)
 
+lastUpdate = time.time()
 while t < 1000:
-    rate(10000000)
+    rate(10000)
+
+    if time.time() - lastUpdate > 1:
+        updateRealPos(slab.slabParticles)
+        lastUpdate = time.time()
 
     if not negativeExist:
         if t < 2.5E-2:
@@ -283,7 +295,7 @@ while t < 1000:
         else:
             dt = max(9E-6, min((2E+9) * sqrt(Ek), 1E-4))
     else:
-        dt = max(setDt(slab.slabParticles) ** 5, 2E-6)
+        dt = max(setDt(slab.slabParticles) ** 4, 8E-6)
         negativeExist = negativeChargesExist(slab.slabParticles)
         # in order to not redundantly run the function once value is toggled
 
@@ -292,11 +304,18 @@ while t < 1000:
     Ek = 0
     for particle in slab.slabParticles:
         kinematics(slab.slabParticles, particle, slab.xBorders, slab.yBorders, slab.zBorders, dt)
+
         updatePos(slab.slabParticles)
+
         Ek += 0.5 * particle.m * mag(particle.v) ** 2
+
     Ep = potentialEnergy(slab.slabParticles)
 
-    findParticlesToMerge(slab.slabParticles)
+    if not negativeExist:
+        findParticlesToMerge(slab.slabParticles)
+
+    if Ek < 1E-28 and t > 0.001:
+        break
 
     energyP.plot(pos=(t, Ep))
     energyK.plot(pos=(t, Ek))
