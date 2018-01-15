@@ -60,6 +60,9 @@ class ChargedSlab(ElectricCharge):
             (self.xBorders[1] - self.xBorders[0]) ** 2 + (self.yBorders[1] - self.yBorders[0]) ** 2 + (
                 self.zBorders[1] - self.zBorders[0]) ** 2)
         self.slabParticles = []
+        self.perimeter = 4 * (
+            self.xBorders[1] - self.xBorders[0] + self.yBorders[1] - self.yBorders[0] + self.zBorders[1] -
+            self.zBorders[0])
 
     def populateCharges(self, numOfCharges):
         chargeNum = 0
@@ -81,16 +84,11 @@ class ChargedSlab(ElectricCharge):
                                    [-1, 1])) * 0.5 + self.obj.pos
 
             self.slabParticles.append(
-                ElectricCharge(2 * self.volume / numOfCharges, chargeSign * 1.602E-19,
+                ElectricCharge(0.3 * self.perimeter / numOfCharges, self.charge*chargeSign * 1.602E-19,
                                chargePos))
             self.slabParticles[-1].m = 9.109E-31
             chargeNum += 1
 
-
-#####STARTING PARAMETERS######
-t = 0
-negativeExist = true
-Ek = 1
 
 ####CONSTANTS#####
 kCoulomb = 8.987551E+9
@@ -276,47 +274,56 @@ def negativeChargesExist(chargeList):
     return false
 
 
-slab = ChargedSlab(vector(0, 0, 0), vector(1, 1, 1), 100)
-slab.populateCharges(100)
+def simulateSlab(slab):
+    t = 0
+    negativeExist = false
+    Ek = 1E-1
 
-lastUpdate = time.time()
-while t < 1000:
-    rate(10000)
+    lastUpdate = time.time()
+    while t < 1000:
+        rate(10000)
 
-    if time.time() - lastUpdate > 1:
-        updateRealPos(slab.slabParticles)
-        lastUpdate = time.time()
+        if time.time() - lastUpdate > 3:
+            updateRealPos(slab.slabParticles)
+            lastUpdate = time.time()
 
-    if not negativeExist:
-        if t < 2.5E-2:
-            dt = max(5E-5, min((2E+9) * sqrt(Ek), 2E-4))
-        elif 2.5E-2 < t < 1.5E-1:
-            dt = max(3E-5, min((2E+9) * sqrt(Ek), 1E-4))
+        if not negativeExist:
+            if t < 2.5E-2:
+                dt = max(2E-5, min((2E+9) * sqrt(Ek), 2E-4))
+            elif 2.5E-2 < t < 1.5E-1:
+                dt = max(1E-5, min((2E+9) * sqrt(Ek), 1E-4))
+            else:
+                dt = max(7E-6, min((2E+9) * sqrt(Ek), 1E-5))
         else:
-            dt = max(9E-6, min((2E+9) * sqrt(Ek), 1E-4))
-    else:
-        dt = max(setDt(slab.slabParticles) ** 4, 8E-6)
-        negativeExist = negativeChargesExist(slab.slabParticles)
-        # in order to not redundantly run the function once value is toggled
+            dt = max(setDt(slab.slabParticles) ** 4, 8E-6)
+            negativeExist = negativeChargesExist(slab.slabParticles)
+            # in order to not redundantly run the function once value is toggled
 
-    t += dt
+        t += dt
 
-    Ek = 0
-    for particle in slab.slabParticles:
-        kinematics(slab.slabParticles, particle, slab.xBorders, slab.yBorders, slab.zBorders, dt)
+        Ek = 0
+        for particle in slab.slabParticles:
+            kinematics(slab.slabParticles, particle, slab.xBorders, slab.yBorders, slab.zBorders, dt)
 
-        updatePos(slab.slabParticles)
+            updatePos(slab.slabParticles)
 
-        Ek += 0.5 * particle.m * mag(particle.v) ** 2
+            Ek += 0.5 * particle.m * mag(particle.v) ** 2
 
-    Ep = potentialEnergy(slab.slabParticles)
+        Ep = potentialEnergy(slab.slabParticles)
 
-    if not negativeExist:
-        findParticlesToMerge(slab.slabParticles)
+        if Ek < 2E-27 and t > 0.001:
+            return
 
-    if Ek < 1E-28 and t > 0.001:
-        break
+        energyP.plot(pos=(t, Ep))
+        energyK.plot(pos=(t, Ek))
+        energyTot.plot(pos=(t, Ek + Ep))
 
-    energyP.plot(pos=(t, Ep))
-    energyK.plot(pos=(t, Ek))
-    energyTot.plot(pos=(t, Ek + Ep))
+
+topSlab = ChargedSlab(vector(0, 2, 0), vector(5, 1, 5), 5)
+topSlab.populateCharges(100)
+
+bottomSlab = ChargedSlab(vector(0, -2, 0), vector(5, 1, 5), -5)
+bottomSlab.populateCharges(100)
+
+simulateSlab(topSlab)
+simulateSlab(bottomSlab)
