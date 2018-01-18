@@ -7,6 +7,7 @@ import time
 
 scene.width = scene.height = 800
 
+######GRAPHS############
 gdisplay(x=800, y=0, width=450, height=450, xtitle='t', ytitle='Ek')
 energyK = gcurve(color=color.cyan)
 
@@ -47,6 +48,17 @@ class ElectricCharge(PhysicsObject):  # main class for electric charges
             self.obj.color = color.red
 
 
+class TestCharge(ElectricCharge):  # class for drawing field and potential lines
+    def __init__(self, position, Radius=0.000000000001):
+        ElectricCharge.__init__(self, Radius, 1E-30, position)
+        self.obj.color = color.white
+        self.obj.make_trail = True
+
+        self.initNullParams()
+
+        self.m = 9.109E-31
+
+
 class ChargedSlab(ElectricCharge):
     def __init__(self, center, Size, charge):
         self.obj = box(opacity=0.1, pos=center, size=Size)
@@ -84,10 +96,73 @@ class ChargedSlab(ElectricCharge):
                                    [-1, 1])) * 0.5 + self.obj.pos
 
             self.slabParticles.append(
-                ElectricCharge(0.3 * self.perimeter / numOfCharges, self.charge*chargeSign * 1.602E-19,
+                ElectricCharge(0.3 * self.perimeter / numOfCharges, self.charge * chargeSign * 1.602E-19,
                                chargePos))
             self.slabParticles[-1].m = 9.109E-31
             chargeNum += 1
+
+    def simulate(self, minEnergy):
+        t = 0
+        Ek = 1E-1
+
+        lastUpdate = time.time()
+        while t < 1000:
+            rate(10000)
+
+            if time.time() - lastUpdate > 3:
+                updateRealPos(self.slabParticles)
+                lastUpdate = time.time()
+
+            if t < 2.5E-2:
+                dt = max(2E-5, min((2E+9) * sqrt(Ek), 2E-4))
+            elif 2.5E-2 < t < 1.5E-1:
+                dt = max(1E-5, min((2E+9) * sqrt(Ek), 1E-4))
+            else:
+                dt = max(7E-6, min((2E+9) * sqrt(Ek), 1E-5))
+
+            t += dt
+
+            Ek = 0
+            for particle in self.slabParticles:
+                kinematics(self.slabParticles, particle, self.xBorders, self.yBorders, self.zBorders,
+                           self.detectCollision,
+                           dt)
+
+                updatePos(self.slabParticles)
+
+                Ek += 0.5 * particle.m * mag(particle.v) ** 2
+
+            Ep = potentialEnergy(self.slabParticles)
+
+            if Ek < minEnergy and t > 0.001:
+                return
+
+            energyP.plot(pos=(t, Ep))
+            energyK.plot(pos=(t, Ek))
+            energyTot.plot(pos=(t, Ek + Ep))
+
+    def detectCollision(self, obj):
+        if obj.pos.x < self.xBorders[0] or obj.pos.x > self.xBorders[1]:
+            obj.v *= 0.7
+            obj.v.x *= -1
+            if obj.pos.x < self.xBorders[0]:  # stops out of bounds errors
+                obj.pos.x = self.xBorders[0]
+            else:
+                obj.pos.x = self.xBorders[1]
+        if obj.pos.y < self.yBorders[0] or obj.pos.y > self.yBorders[1]:
+            obj.v *= 0.7
+            obj.v.y *= -1
+            if obj.pos.y < self.yBorders[0]:
+                obj.pos.y = self.yBorders[0]
+            else:
+                obj.pos.y = self.yBorders[1]
+        if obj.pos.z < self.zBorders[0] or obj.pos.z > self.zBorders[1]:
+            obj.v *= 0.7
+            obj.v.z *= -1
+            if obj.pos.z < self.zBorders[0]:
+                obj.pos.z = self.zBorders[0]
+            else:
+                obj.pos.z = self.zBorders[1]
 
 
 ####CONSTANTS#####
@@ -98,7 +173,7 @@ zMaxRange = [-5, 5]
 
 
 ###FUNCTIONS####
-def kinematics(chargeList, obj, xRange, yRange, zRange, dt=0):
+def kinematics(chargeList, obj, xRange, yRange, zRange, collisionFunc, dt=0):
     force = vector(0, 0, 0)
     for chargeObj in chargeList:
         if chargeObj.charge == 0:
@@ -118,12 +193,39 @@ def kinematics(chargeList, obj, xRange, yRange, zRange, dt=0):
 
     if dt is not 0:
         obj.v += obj.a * dt
-        detectCollision(obj, xRange, yRange, zRange)
+        collisionFunc(obj)
         obj.nextPos = obj.pos + obj.v * dt
     else:
-        obj.v += obj.a * 5E-5  # default dt if not defined
-        detectCollision(obj, xRange, yRange, zRange)
-        obj.nextPos = obj.pos + obj.v * 5E-5
+        obj.v += obj.a * 5E-2  # default dt if not defined
+        collisionFunc(obj)
+        obj.nextPos = obj.pos + obj.v * 5E-2
+
+
+def fieldKinematics(chargeList, obj, dt=0):
+    force = vector(0, 0, 0)
+
+    for chargeObj in chargeList:
+        r = obj.obj.pos - chargeObj.obj.pos
+
+        if mag(r) < chargeObj.obj.radius:  # in case for some reason objects intersect
+            return False
+
+        force += chargeObj.charge / mag(r) ** 2 * r / mag(r)  # coulomb's law
+
+    force *= kCoulomb * obj.charge
+    obj.a = force / obj.m
+
+    if dt is not 0:
+        obj.v = obj.a * dt
+        obj.obj.pos += obj.v * dt
+    else:
+        obj.v = obj.a * 200  # default dt if not defined
+        obj.obj.pos += obj.v * 200
+
+    if mag(obj.v) < 1E-30:
+        return False
+
+    return True
 
 
 def updatePos(objList):
@@ -161,8 +263,7 @@ def detectCollision(obj, xRange, yRange, zRange):  # elastic collision with the 
 
 
 def inRange(obj, xRange, yRange, zRange):  # checks if obj is inside allowed range
-    if xRange[1] > obj.pos.x > xRange[0] and yRange[1] > obj.pos.y > yRange[0] and zRange[1] > obj.pos.y > \
-            zRange[0]:
+    if xRange[1] > obj.pos.x > xRange[0] and yRange[1] > obj.pos.y > yRange[0] and zRange[1] > obj.pos.z > zRange[0]:
         return True
     return False
 
@@ -274,56 +375,83 @@ def negativeChargesExist(chargeList):
     return false
 
 
-def simulateSlab(slab):
-    t = 0
-    negativeExist = false
-    Ek = 1E-1
-
-    lastUpdate = time.time()
-    while t < 1000:
-        rate(10000)
-
-        if time.time() - lastUpdate > 3:
-            updateRealPos(slab.slabParticles)
-            lastUpdate = time.time()
-
-        if not negativeExist:
-            if t < 2.5E-2:
-                dt = max(2E-5, min((2E+9) * sqrt(Ek), 2E-4))
-            elif 2.5E-2 < t < 1.5E-1:
-                dt = max(1E-5, min((2E+9) * sqrt(Ek), 1E-4))
-            else:
-                dt = max(7E-6, min((2E+9) * sqrt(Ek), 1E-5))
-        else:
-            dt = max(setDt(slab.slabParticles) ** 4, 8E-6)
-            negativeExist = negativeChargesExist(slab.slabParticles)
-            # in order to not redundantly run the function once value is toggled
-
-        t += dt
-
-        Ek = 0
-        for particle in slab.slabParticles:
-            kinematics(slab.slabParticles, particle, slab.xBorders, slab.yBorders, slab.zBorders, dt)
-
-            updatePos(slab.slabParticles)
-
-            Ek += 0.5 * particle.m * mag(particle.v) ** 2
-
-        Ep = potentialEnergy(slab.slabParticles)
-
-        if Ek < 2E-27 and t > 0.001:
-            return
-
-        energyP.plot(pos=(t, Ep))
-        energyK.plot(pos=(t, Ek))
-        energyTot.plot(pos=(t, Ek + Ep))
+def drawFieldOnObj(slab, chargeList, dt):
+    for particle in chargeList:
+        if random.random() < 0.5:
+            continue
+        if abs(particle.obj.pos.x - slab.xBorders[0]) < 0.01:
+            drawField(vector(- particle.obj.radius * 1.01, 0, 0) + particle.obj.pos, chargeList, dt)
+        if abs(particle.obj.pos.x - slab.xBorders[1]) < 0.01:
+            drawField(vector(particle.obj.radius * 1.01, 0, 0) + particle.obj.pos, chargeList, dt)
+        if abs(particle.obj.pos.y - slab.yBorders[0]) < 0.01:
+            drawField(vector(0, - particle.obj.radius * 1.01, 0) + particle.obj.pos, chargeList, dt)
+        if abs(particle.obj.pos.y - slab.yBorders[1]) < 0.01:
+            drawField(vector(0, particle.obj.radius * 1.01, 0) + particle.obj.pos, chargeList, dt)
+        if abs(particle.obj.pos.z - slab.zBorders[0]) < 0.01:
+            drawField(vector(0, 0, - particle.obj.radius * 1.01) + particle.obj.pos, chargeList, dt)
+        if abs(particle.obj.pos.z - slab.zBorders[1]) < 0.01:
+            drawField(vector(0, 0, particle.obj.radius * 1.01) + particle.obj.pos, chargeList, dt)
 
 
-topSlab = ChargedSlab(vector(0, 2, 0), vector(5, 1, 5), 5)
-topSlab.populateCharges(100)
+def drawField(position, chargeList, dt):
+    tracker = TestCharge(position)  # creates a tracking charge at the mouse position
 
-bottomSlab = ChargedSlab(vector(0, -2, 0), vector(5, 1, 5), -5)
-bottomSlab.populateCharges(100)
+    while inRange(tracker, xMaxRange, yMaxRange, zMaxRange) and fieldKinematics(chargeList, tracker, dt):
+        rate(1000)
 
-simulateSlab(topSlab)
-simulateSlab(bottomSlab)
+
+def setCharge(position, chargeList, dt):
+    tracker = TestCharge(position)  # creates a charge at the mous position
+
+    tracker.obj.trail_object.color = color.green
+    tracker.obj.trail_object.retain = 10
+
+    tracker.v = vector(0.0005, 0, 0)
+
+    while inRange(tracker, xMaxRange, yMaxRange, zMaxRange):
+        rate(100000)
+        kinematics(chargeList, tracker, xMaxRange, yMaxRange, zMaxRange, dt)
+        updateRealPos([tracker])
+        updatePos([tracker])
+
+
+def placeCharges(chargeList, dt):
+    while True:
+        ev = scene.waitfor('click keydown')
+        if ev.event == 'click':
+            setCharge(scene.mouse.pos, chargeList, dt)
+
+
+def twoSlabs():
+    topSlab = ChargedSlab(vector(0, 2, 0), vector(5, 1, 5), 5)
+    topSlab.populateCharges(100)
+
+    bottomSlab = ChargedSlab(vector(0, -2, 0), vector(5, 1, 5), -5)
+    bottomSlab.populateCharges(100)
+
+    bottomSlab.simulate(5E-27)
+    topSlab.simulate(5E-27)
+
+    chargedParticles = topSlab.slabParticles + bottomSlab.slabParticles
+
+    drawFieldOnObj(topSlab, chargedParticles, 3E+2)
+
+    placeCharges(chargedParticles, 1E+1)
+
+
+def boxSim():
+    slab = ChargedSlab(vector(0, 0, 0), vector(1, 1, 1), 1)
+    slab.populateCharges(100)
+
+    slab.simulate(1E-27)
+
+
+def runSim(input):
+    if input == 'twoSlabs':
+        twoSlabs()
+    elif input == 'box':
+        boxSim()
+
+
+if __name__ == "__main__":
+    runSim(raw_input())
