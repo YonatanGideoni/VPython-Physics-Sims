@@ -44,7 +44,7 @@ class SpringPendulum:
 
     def update_pos(self):
         self.weight_pos = self.pos
-        self.spring.axis = self.spring.pos - self.weight_pos
+        self.spring.axis = self.weight_pos - self.spring.pos
         self.weight.pos = self.weight_pos
 
 
