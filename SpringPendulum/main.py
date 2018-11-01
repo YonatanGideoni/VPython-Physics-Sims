@@ -10,6 +10,7 @@ end_time = 20.01
 
 # STARTING TERMS #
 t = 0
+col_y = 1
 
 
 # CLASSES #
@@ -23,7 +24,7 @@ class ExcelSheet:
     def __init__(self, sheet_name='Data'):
         self.book = xlwt.Workbook(encoding="utf-8")
         self.sheets = []
-        self.sheets[0] = self.book.add_sheet(sheet_name)
+        self.sheets.append(self.book.add_sheet(sheet_name))
 
     def write_to_sheet(self, data, sheet=0):
         for data_obj in data:
@@ -37,7 +38,7 @@ class ExcelSheet:
         return _ret_list
 
     def save_file(self, file_name='Data sheet'):
-        self.book.save(file_name + 'xlsx')
+        self.book.save(file_name + '.xls')
 
 
 class Energy:
@@ -81,18 +82,28 @@ class SpringPendulum:
         self.weight.pos = self.weight_pos
 
 
-data_sheet = ExcelSheet('Data')
-
 # ANIMATION
 
 test_spring = SpringPendulum(radius=0.05, end_pos=vector(0, -0.09, 0.04), mass=0.312, spring_constant=35.77,
                              equilibrium_length=0.17)
 
-while t <= end_time:
+# Defining the Excel data file.
+data_sheet = ExcelSheet('Data')
+headers = ExcelSheet.create_data_objects(
+    [[0, 0, 'x'], [1, 0, 'y'], [2, 0, 'z'], [3, 0, 't']])
+experiment_constants = ExcelSheet.create_data_objects([[5, 0, 'mass'], [5, 1, test_spring.mass],
+                                                       [6, 0, 'spring constant'], [6, 1, test_spring.spring_constant],
+                                                       [7, 0, 'equilibrium length'],
+                                                       [7, 1, test_spring.equilibrium_length]])
+data_sheet.write_to_sheet(headers)
+data_sheet.write_to_sheet(experiment_constants)
+
+while t <= end_time + DT:
     if t % real_dt < DT:  # so it works with the slight floating point precision errors
-        y = int(t / real_dt) + 4
+        col_y += 1
         data_list = ExcelSheet.create_data_objects(
-            [[0, y, test_spring.pos.x], [1, y, test_spring.pos.y], [2, y, test_spring.pos.z], [3, y, t]])
+            [[0, col_y, test_spring.pos.x], [1, col_y, test_spring.pos.y], [2, col_y, test_spring.pos.z],
+             [3, col_y, round(t, 2)]])
         data_sheet.write_to_sheet(data_list)
     rate(1000)
 
@@ -100,3 +111,5 @@ while t <= end_time:
 
     test_spring.kinematics()
     test_spring.update_pos()
+
+data_sheet.save_file()
