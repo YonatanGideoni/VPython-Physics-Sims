@@ -4,17 +4,35 @@ import xlwt
 # CONSTANTS #
 GRAPHS_ENABLED = false
 real_dt = 0.03
-DT = 1E-3 * real_dt
+DT = 1E-1 * real_dt
 G = vector(0, -9.81, 0)
+end_time = 20.01
 
 # STARTING TERMS #
 t = 0
 
-book = xlwt.Workbook('Data sheet')
-sheet1 = book.add_sheet('Data')
-
 
 # CLASSES #
+class ExcelSheet:
+    class DataObject:
+        def __init__(self, x, y, data):
+            self.x = x
+            self.y = y
+            self.data = data
+
+    def __init__(self, sheet_name='Data'):
+        self.book = xlwt.Workbook(encoding="utf-8")
+        self.sheets = []
+        self.sheets[0] = self.book.add_sheet(sheet_name)
+
+    def write_to_sheet(self, data, sheet=0):
+        for obj in data:
+            self.sheets[sheet].write(obj.y, obj.x, obj.data)
+
+    def save_file(self, file_name='Data sheet'):
+        self.book.save(file_name + 'xlsx')
+
+
 class Energy:
     def __init__(self, potential=0, kinetic=0):
         self.total = potential + kinetic
@@ -23,6 +41,7 @@ class Energy:
 
 
 class SpringPendulum:
+
     def __init__(self, equilibrium_length=0.2, start_pos=vector(0, 0, 0), end_pos=vector(0, -0.3, 0), mass=0.25,
                  spring_constant=30, trail_retain=5000, radius=0.1):
         self.spring = helix(pos=start_pos, axis=end_pos - start_pos, radius=radius, color=color.green)
@@ -60,7 +79,7 @@ class SpringPendulum:
 test_spring = SpringPendulum(radius=0.05, end_pos=vector(0, -0.09, 0.04), mass=0.2, spring_constant=35,
                              equilibrium_length=0.17)
 print('x y z t')
-while true:
+while t <= end_time:
     t += DT
 
     if t % real_dt < DT:  # so it works with the slight floating point precision errors
