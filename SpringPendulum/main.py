@@ -26,8 +26,15 @@ class ExcelSheet:
         self.sheets[0] = self.book.add_sheet(sheet_name)
 
     def write_to_sheet(self, data, sheet=0):
-        for obj in data:
-            self.sheets[sheet].write(obj.y, obj.x, obj.data)
+        for data_obj in data:
+            self.sheets[sheet].write(data_obj.y, data_obj.x, data_obj.data)
+
+    @staticmethod
+    def create_data_objects(lists):
+        _ret_list = []
+        for _list in lists:
+            _ret_list.append(ExcelSheet.DataObject(_list[0], _list[1], _list[2]))
+        return _ret_list
 
     def save_file(self, file_name='Data sheet'):
         self.book.save(file_name + 'xlsx')
@@ -43,7 +50,7 @@ class Energy:
 class SpringPendulum:
 
     def __init__(self, equilibrium_length=0.2, start_pos=vector(0, 0, 0), end_pos=vector(0, -0.3, 0), mass=0.25,
-                 spring_constant=30, trail_retain=5000, radius=0.1):
+                 spring_constant=30., trail_retain=5000, radius=0.1):
         self.spring = helix(pos=start_pos, axis=end_pos - start_pos, radius=radius, color=color.green)
         self.spring_constant = spring_constant
         self.mass = mass
@@ -74,18 +81,22 @@ class SpringPendulum:
         self.weight.pos = self.weight_pos
 
 
+data_sheet = ExcelSheet('Data')
+
 # ANIMATION
 
-test_spring = SpringPendulum(radius=0.05, end_pos=vector(0, -0.09, 0.04), mass=0.2, spring_constant=35,
+test_spring = SpringPendulum(radius=0.05, end_pos=vector(0, -0.09, 0.04), mass=0.312, spring_constant=35.77,
                              equilibrium_length=0.17)
-print('x y z t')
+
 while t <= end_time:
-    t += DT
-
     if t % real_dt < DT:  # so it works with the slight floating point precision errors
-        print(test_spring.pos.x, test_spring.pos.y, test_spring.pos.z, t)
-
+        y = int(t / real_dt) + 4
+        data_list = ExcelSheet.create_data_objects(
+            [[0, y, test_spring.pos.x], [1, y, test_spring.pos.y], [2, y, test_spring.pos.z], [3, y, t]])
+        data_sheet.write_to_sheet(data_list)
     rate(1000)
+
+    t += DT
 
     test_spring.kinematics()
     test_spring.update_pos()
