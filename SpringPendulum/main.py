@@ -3,15 +3,14 @@ from visual.graph import *
 import xlwt
 
 # CONSTANTS #
-GRAPHS_ENABLED = false
 real_dt = 0.03
-DT = 1E-1 * real_dt
+DT = 1E-3 * real_dt
 G = vector(0, -9.81, 0)
 end_time = 20.01
 
 # STARTING TERMS #
 t = 0
-col_y = 1
+col_y = 0
 
 
 # CLASSES #
@@ -49,7 +48,6 @@ class Energy:
         self.kinetic = kinetic
 
 
-# TODO: add total energy graph
 class SpringPendulum:
 
     def __init__(self, equilibrium_length=0.2, start_pos=vector(0, 0, 0), end_pos=vector(0, -0.3, 0), mass=0.25,
@@ -65,17 +63,19 @@ class SpringPendulum:
         self.velocity = vector(0, 0, 0)
         self.equilibrium_length = equilibrium_length
         self.graphs = {}
+        self.force = vector(0, 0, 0)
         self.weight = cylinder(pos=end_pos, axis=vector(0, -radius, 0), radius=radius,
                                color=color.red,
                                make_trail=true, retain=trail_retain)
 
     def kinematics(self, dt=DT):  # Euler integration
-        self.acceleration = vector(0, 0, 0)
+        self.force = vector(0, 0, 0)
         if self.gravity_enabled:
-            self.acceleration += self.mass * G
+            self.force += self.mass * G
 
-        self.acceleration += -self.spring_constant * (
+        self.force += -self.spring_constant * (
                 mag(self.weight_pos) - self.equilibrium_length) * self.weight_pos / mag(self.weight_pos)
+        self.acceleration = self.force / self.mass
         self.velocity += self.acceleration * dt
         self.pos += self.velocity * dt
 
@@ -98,8 +98,8 @@ class SpringPendulum:
             self.graphs['kinetic energy'] = gcurve(color=color.green)
 
     def __calculate_energy(self):
-        self.energy.potential = self.mass * G * self.pos.y + \
-                                0.5 * self.spring_constant * (mag(self.weight_pos) - self.equilibrium_length) ** 2
+        self.energy.potential = self.mass * G.mag * self.pos.y + \
+                                0.5 * self.spring_constant * (self.weight_pos.mag - self.equilibrium_length) ** 2
         self.energy.kinetic = 0.5 * self.mass * self.velocity.mag2
         self.energy.total = self.energy.kinetic + self.energy.potential
 
@@ -139,7 +139,7 @@ while t <= end_time + DT:
     rate(1000)
 
     t += DT
-
+    test_spring.update_graph(t)
     test_spring.kinematics()
     test_spring.update_pos()
 
