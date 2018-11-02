@@ -1,4 +1,5 @@
 from visual import *
+from visual.graph import *
 import xlwt
 
 # CONSTANTS #
@@ -38,7 +39,7 @@ class ExcelSheet:
         return _ret_list
 
     def save_file(self, file_name='Data sheet'):
-        self.book.save(file_name + '.xls')
+        self.book.save(file_name + '.csv')
 
 
 class Energy:
@@ -48,6 +49,7 @@ class Energy:
         self.kinetic = kinetic
 
 
+# TODO: add total energy graph
 class SpringPendulum:
 
     def __init__(self, equilibrium_length=0.2, start_pos=vector(0, 0, 0), end_pos=vector(0, -0.3, 0), mass=0.25,
@@ -62,6 +64,7 @@ class SpringPendulum:
         self.acceleration = vector(0, 0, 0)
         self.velocity = vector(0, 0, 0)
         self.equilibrium_length = equilibrium_length
+        self.graphs = {}
         self.weight = cylinder(pos=end_pos, axis=vector(0, -radius, 0), radius=radius,
                                color=color.red,
                                make_trail=true, retain=trail_retain)
@@ -80,6 +83,29 @@ class SpringPendulum:
         self.weight_pos = self.pos
         self.spring.axis = self.weight_pos - self.spring.pos
         self.weight.pos = self.weight_pos
+
+    def add_energy_graphs(self, total=False, potential=False, kinetic=False):
+        if total:
+            gdisplay(x=800, y=0, width=450, height=450, xtitle='time', ytitle='Total Energy')
+            self.graphs['total energy'] = gcurve(color=color.green)
+
+        if potential:
+            gdisplay(width=450, height=450, xtitle='time', ytitle='Potential Energy')
+            self.graphs['potential energy'] = gcurve(color=color.green)
+
+        if kinetic:
+            gdisplay(width=450, height=450, xtitle='time', ytitle='Kinetic Energy')
+            self.graphs['kinetic energy'] = gcurve(color=color.green)
+
+    def __calculate_energy(self):
+        self.energy.potential = self.mass * G * self.pos.y + \
+                                0.5 * self.spring_constant * (mag(self.weight_pos) - self.equilibrium_length) ** 2
+        self.energy.kinetic = 0.5 * self.mass * self.velocity.mag2
+        self.energy.total = self.energy.kinetic + self.energy.potential
+
+    def update_graph(self, t, graph_name='total energy'):
+        if 'energy' in graph_name:
+            self.__calculate_energy()
 
 
 # ANIMATION
