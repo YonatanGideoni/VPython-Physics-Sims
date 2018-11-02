@@ -106,12 +106,17 @@ class SpringPendulum:
     def update_graph(self, t, graph_name='total energy'):
         if 'energy' in graph_name:
             self.__calculate_energy()
+            self.graphs[graph_name].plot(pos=(t,
+                                              {'total energy': self.energy.total,
+                                               'potential energy': self.energy.potential,
+                                               'kinetic energy': self.energy.kinetic}[graph_name]))
 
 
 # ANIMATION
 
 test_spring = SpringPendulum(radius=0.05, end_pos=vector(0, -0.09, 0.04), mass=0.312, spring_constant=35.77,
                              equilibrium_length=0.17)
+test_spring.add_energy_graphs(total=true)
 
 # Defining the Excel data file.
 data_sheet = ExcelSheet('Data')
