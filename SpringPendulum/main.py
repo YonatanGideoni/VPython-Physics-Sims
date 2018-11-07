@@ -19,7 +19,8 @@ rod_length = 0.17
 t = 0
 col_y = 0
 start_pos = vector(0.13, -0.35, 0.22)
-starting_velocity = change_vector_length(vector(-1./6., -1./6., 0.01/0.24), start_pos.mag / (start_pos.mag + rod_length))
+starting_velocity = change_vector_length(vector(-1. / 6., -1. / 6., 0.01 / 0.24),
+                                         start_pos.mag / (start_pos.mag + rod_length))
 
 
 # CLASSES #
@@ -60,7 +61,7 @@ class Energy:
 class SpringPendulum:
 
     def __init__(self, equilibrium_length=0.2, start_pos=vector(0, 0, 0), end_pos=vector(0, -0.3, 0), mass=0.25,
-                 spring_constant=30., trail_retain=5000, radius=0.1, starting_velocity=vector(0, 0, 0)):
+                 spring_constant=30., trail_retain=10000, radius=0.1, starting_velocity=vector(0, 0, 0)):
         self.spring = helix(pos=start_pos, axis=end_pos - start_pos, radius=radius, color=color.green)
         self.spring_constant = spring_constant
         self.mass = mass
@@ -99,12 +100,12 @@ class SpringPendulum:
             self.graphs['total energy'] = gcurve(color=color.green)
 
         if potential:
-            gdisplay(width=450, height=450, xtitle='time', ytitle='Potential Energy')
-            self.graphs['potential energy'] = gcurve(color=color.green)
+            gdisplay(x=800, y=0, width=450, height=450, xtitle='time', ytitle='Potential Energy')
+            self.graphs['potential energy'] = gcurve(color=color.yellow)
 
         if kinetic:
-            gdisplay(width=450, height=450, xtitle='time', ytitle='Kinetic Energy')
-            self.graphs['kinetic energy'] = gcurve(color=color.green)
+            gdisplay(x=800, y=0, width=450, height=450, xtitle='time', ytitle='Kinetic Energy')
+            self.graphs['kinetic energy'] = gcurve(color=color.magenta)
 
     def __calculate_energy(self):
         self.energy.potential = self.mass * G.mag * self.pos.y + \
@@ -126,7 +127,7 @@ class SpringPendulum:
 test_spring = SpringPendulum(radius=0.05, end_pos=change_vector_length(start_pos, start_pos.mag - rod_length),
                              mass=0.3512, spring_constant=35.77,
                              equilibrium_length=0.177, starting_velocity=starting_velocity)
-test_spring.add_energy_graphs(total=true)
+test_spring.add_energy_graphs(total=true, potential=true, kinetic=true)
 
 # Defining the Excel data file.
 data_sheet = ExcelSheet('Data')
@@ -150,7 +151,9 @@ while t <= end_time + DT:
     rate(1000)
 
     t += DT
-    test_spring.update_graph(t)
+    test_spring.update_graph(t, 'total energy')
+    test_spring.update_graph(t, 'potential energy')
+    test_spring.update_graph(t, 'kinetic energy')
     test_spring.kinematics()
     test_spring.update_pos()
 
