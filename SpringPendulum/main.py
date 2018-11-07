@@ -4,13 +4,20 @@ import xlwt
 
 # CONSTANTS #
 real_dt = 0.03
-DT = 1E-3 * real_dt
+DT = 1E-2 * real_dt
 G = vector(0, -9.81, 0)
-end_time = 20.01
+end_time = 15.87
+rod_length = 0.17
 
 # STARTING TERMS #
 t = 0
 col_y = 0
+start_pos = vector(0.13, -0.35, 0.22)
+
+
+# FUNCTIONS #
+def change_vector_length(old_vector, new_length):
+    return new_length * old_vector / old_vector.mag
 
 
 # CLASSES #
@@ -114,8 +121,9 @@ class SpringPendulum:
 
 # ANIMATION
 
-test_spring = SpringPendulum(radius=0.05, end_pos=vector(0, -0.09, 0.04), mass=0.312, spring_constant=35.77,
-                             equilibrium_length=0.17)
+test_spring = SpringPendulum(radius=0.05, end_pos=change_vector_length(start_pos, start_pos.mag - rod_length),
+                             mass=0.3512, spring_constant=35.77,
+                             equilibrium_length=0.177)
 test_spring.add_energy_graphs(total=true)
 
 # Defining the Excel data file.
@@ -132,8 +140,9 @@ data_sheet.write_to_sheet(experiment_constants)
 while t <= end_time + DT:
     if t % real_dt < DT:  # so it works with the slight floating point precision errors
         col_y += 1
+        print_vector = change_vector_length(test_spring.pos, test_spring.pos.mag+rod_length)
         data_list = ExcelSheet.create_data_objects(
-            [[0, col_y, test_spring.pos.x], [1, col_y, test_spring.pos.y], [2, col_y, test_spring.pos.z],
+            [[0, col_y, print_vector.x], [1, col_y, print_vector.y], [2, col_y, print_vector.z],
              [3, col_y, round(t, 2)]])
         data_sheet.write_to_sheet(data_list)
     rate(1000)
