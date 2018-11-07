@@ -2,6 +2,12 @@ from visual import *
 from visual.graph import *
 import xlwt
 
+
+# FUNCTIONS #
+def change_vector_length(old_vector, new_length):
+    return new_length * old_vector / old_vector.mag
+
+
 # CONSTANTS #
 real_dt = 0.03
 DT = 1E-2 * real_dt
@@ -13,11 +19,7 @@ rod_length = 0.17
 t = 0
 col_y = 0
 start_pos = vector(0.13, -0.35, 0.22)
-
-
-# FUNCTIONS #
-def change_vector_length(old_vector, new_length):
-    return new_length * old_vector / old_vector.mag
+starting_velocity = change_vector_length(vector(-1./6., -1./6., 0.01/0.24), start_pos.mag / (start_pos.mag + rod_length))
 
 
 # CLASSES #
@@ -58,7 +60,7 @@ class Energy:
 class SpringPendulum:
 
     def __init__(self, equilibrium_length=0.2, start_pos=vector(0, 0, 0), end_pos=vector(0, -0.3, 0), mass=0.25,
-                 spring_constant=30., trail_retain=5000, radius=0.1):
+                 spring_constant=30., trail_retain=5000, radius=0.1, starting_velocity=vector(0, 0, 0)):
         self.spring = helix(pos=start_pos, axis=end_pos - start_pos, radius=radius, color=color.green)
         self.spring_constant = spring_constant
         self.mass = mass
@@ -67,7 +69,7 @@ class SpringPendulum:
         self.energy = Energy()
         self.gravity_enabled = true
         self.acceleration = vector(0, 0, 0)
-        self.velocity = vector(0, 0, 0)
+        self.velocity = starting_velocity
         self.equilibrium_length = equilibrium_length
         self.graphs = {}
         self.force = vector(0, 0, 0)
@@ -123,7 +125,7 @@ class SpringPendulum:
 
 test_spring = SpringPendulum(radius=0.05, end_pos=change_vector_length(start_pos, start_pos.mag - rod_length),
                              mass=0.3512, spring_constant=35.77,
-                             equilibrium_length=0.177)
+                             equilibrium_length=0.177, starting_velocity=starting_velocity)
 test_spring.add_energy_graphs(total=true)
 
 # Defining the Excel data file.
@@ -140,7 +142,7 @@ data_sheet.write_to_sheet(experiment_constants)
 while t <= end_time + DT:
     if t % real_dt < DT:  # so it works with the slight floating point precision errors
         col_y += 1
-        print_vector = change_vector_length(test_spring.pos, test_spring.pos.mag+rod_length)
+        print_vector = change_vector_length(test_spring.pos, test_spring.pos.mag + rod_length)
         data_list = ExcelSheet.create_data_objects(
             [[0, col_y, print_vector.x], [1, col_y, print_vector.y], [2, col_y, print_vector.z],
              [3, col_y, round(t, 2)]])
