@@ -24,8 +24,21 @@ import openpyxl as pyxl
 import numpy as np
 from scipy import stats  # used only for linear regression, to estimate angle of plane.
 
+
+# FUNCTIONS
+def cell_to_variable(cell):
+    return cell.value
+
+
+cell_to_variable = np.vectorize(cell_to_variable)
+
+# ANALYSIS
+
 wb = pyxl.load_workbook('test_motion_data.xlsx')
 results_sheet = wb.create_sheet('Results')
 data_sheet = wb.get_sheet_by_name('Data')
 
 # TODO: create basic x(z) chart
+x_col = np.array(cell_to_variable(data_sheet['B']))[1:].astype(np.float)
+z_col = np.array(cell_to_variable(data_sheet['D']))[1:].astype(np.float)
+xz_data = np.array([x_col[1:], z_col[1:]])
