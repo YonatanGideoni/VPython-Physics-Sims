@@ -20,17 +20,25 @@
 # 12. Graph change of angle between planes and transition time, add to results.
 # 13. Save excel file and hope that the physics works just as well as the code.
 
+# IMPORTS
 import openpyxl as pyxl
 import numpy as np
 from scipy import stats  # used only for linear regression, to estimate angle of plane.
 from math import *
 
+# CONSTANTS
+dt = 0.03  # based on system settings
+
 
 # OBJECTS
 class PointData:
-    def __init__(self, x, y):
+    def __init__(self, x, y, time=0):
         self.point = np.array([x, y])
         self.mag = np.linalg.norm(self.point)
+        self.time = time
+
+    def __str__(self):
+        return 'time: ' + str(self.time) + ' x,y: ' + str(self.point) + ' mag: ' + str(self.mag)
 
 
 # FUNCTIONS
@@ -39,7 +47,6 @@ def cell_to_variable(cell):
 
 
 cell_to_variable = np.vectorize(cell_to_variable)
-
 # ANALYSIS
 
 wb = pyxl.load_workbook('test_motion_data.xlsx')
@@ -48,4 +55,13 @@ data_sheet = wb.get_sheet_by_name('Data')
 
 x_col = np.array(cell_to_variable(data_sheet['B']))[1:].astype(np.float)
 z_col = np.array(cell_to_variable(data_sheet['D']))[1:].astype(np.float)
+
+temp_t = 0
+
 xz_data = np.array(np.vectorize(PointData)(x_col[1:], z_col[1:]))
+
+for data in xz_data:
+    data.time = temp_t
+    temp_t += dt
+
+del temp_t
