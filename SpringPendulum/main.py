@@ -1,3 +1,4 @@
+import random
 from visual import *
 from visual.graph import *
 import xlwt
@@ -18,8 +19,8 @@ rod_length = 0.17
 # STARTING TERMS #
 t = 0
 col_y = 0
-start_pos = vector(0.13, -0.35, 0.22)
-starting_velocity = change_vector_length(vector(-1. / 6., -1. / 6., 0.01 / 0.24),
+start_pos = vector(-0.0453, -0.418, 0.0506)
+starting_velocity = change_vector_length(vector(-0.04, -0.26, 0.01),
                                          start_pos.mag / (start_pos.mag + rod_length))
 
 
@@ -73,13 +74,19 @@ class SpringPendulum:
         self.velocity = starting_velocity
         self.equilibrium_length = equilibrium_length
         self.graphs = {}
+        self.random_action = True
         self.force = vector(0, 0, 0)
         self.weight = cylinder(pos=end_pos, axis=vector(0, -radius, 0), radius=radius,
                                color=color.red,
                                make_trail=true, retain=trail_retain)
 
+    def random_force(self):
+        if self.random_action:
+            return vector(random.random(), random.random(), random.random()) * 5E-3
+        return vector(0, 0, 0)
+
     def kinematics(self, dt=DT):  # Euler integration
-        self.force = vector(0, 0, 0)
+        self.force = self.random_force()
         if self.gravity_enabled:
             self.force += self.mass * G
 
@@ -124,10 +131,11 @@ class SpringPendulum:
 
 # ANIMATION
 
-test_spring = SpringPendulum(radius=0.05, end_pos=change_vector_length(start_pos, start_pos.mag - rod_length),
-                             mass=0.3512, spring_constant=35.77,
+test_spring = SpringPendulum(radius=0.05,
+                             end_pos=change_vector_length(start_pos, start_pos.mag - 0.177),
+                             mass=0.2622, spring_constant=35.77,
                              equilibrium_length=0.177, starting_velocity=starting_velocity)
-test_spring.add_energy_graphs(total=true, potential=true, kinetic=true)
+test_spring.add_energy_graphs(total=True, potential=True, kinetic=True)
 
 # Defining the Excel data file.
 data_sheet = ExcelSheet('Data')
