@@ -13,7 +13,7 @@ def change_vector_length(old_vector, new_length):
 real_dt = 0.03
 DT = 1E-2 * real_dt
 G = vector(0, -9.81, 0)
-end_time = 15.87
+end_time = 1500
 rod_length = 0.17
 
 # STARTING TERMS #
@@ -108,11 +108,20 @@ class SpringPendulum:
 
         if potential:
             gdisplay(x=800, y=0, width=450, height=450, xtitle='time', ytitle='Potential Energy')
-            self.graphs['potential energy'] = gcurve(color=color.yellow)
+            self.graphs['potential energy'] = gcurve(color=color.cyan)
 
         if kinetic:
             gdisplay(x=800, y=0, width=450, height=450, xtitle='time', ytitle='Kinetic Energy')
             self.graphs['kinetic energy'] = gcurve(color=color.magenta)
+
+    def add_xyz_graphs(self, xy=False, xz=False, yz=False):
+        if xy:
+            gdisplay(x=800, y=0, width=450, height=450, xtitle='x', ytitle='y')
+            self.graphs['xy'] = gcurve(color=color.red)
+
+        if xz:
+            gdisplay(x=800, y=0, width=450, height=450, xtitle='x', ytitle='z')
+            self.graphs['xz'] = gcurve(color=color.yellow)
 
     def __calculate_energy(self):
         self.energy.potential = self.mass * G.mag * self.pos.y + \
@@ -120,13 +129,17 @@ class SpringPendulum:
         self.energy.kinetic = 0.5 * self.mass * self.velocity.mag2
         self.energy.total = self.energy.kinetic + self.energy.potential
 
-    def update_graph(self, t, graph_name='total energy'):
+    def update_graph(self, t=t, graph_name='total energy'):
         if 'energy' in graph_name:
             self.__calculate_energy()
             self.graphs[graph_name].plot(pos=(t,
                                               {'total energy': self.energy.total,
                                                'potential energy': self.energy.potential,
                                                'kinetic energy': self.energy.kinetic}[graph_name]))
+        elif graph_name == 'xy':
+            self.graphs['xy'].plot(pos=(self.pos.x, self.pos.y))
+        elif graph_name == 'xz':
+            self.graphs['xz'].plot(pos=(self.pos.x, self.pos.z))
 
 
 # ANIMATION
@@ -136,6 +149,7 @@ test_spring = SpringPendulum(radius=0.05,
                              mass=0.2622, spring_constant=35.77,
                              equilibrium_length=0.177, starting_velocity=starting_velocity)
 test_spring.add_energy_graphs(total=True, potential=True, kinetic=True)
+test_spring.add_xyz_graphs(xz=True)
 
 # Defining the Excel data file.
 data_sheet = ExcelSheet('Data')
@@ -162,6 +176,7 @@ while t <= end_time + DT:
     test_spring.update_graph(t, 'total energy')
     test_spring.update_graph(t, 'potential energy')
     test_spring.update_graph(t, 'kinetic energy')
+    test_spring.update_graph(graph_name='xz')
     test_spring.kinematics()
     test_spring.update_pos()
 
