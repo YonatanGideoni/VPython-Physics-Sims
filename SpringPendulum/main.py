@@ -20,8 +20,7 @@ rod_length = 0.17
 t = 0
 col_y = 0
 start_pos = vector(-0.0453, -0.418, 0.0506)
-starting_velocity = change_vector_length(vector(-0.04, -0.26, 0.01),
-                                         start_pos.mag / (start_pos.mag + rod_length))
+starting_velocity = change_vector_length(vector(-0.04, -0.26, 0.01), start_pos.mag / (start_pos.mag + rod_length))
 
 
 # CLASSES #
@@ -62,7 +61,8 @@ class Energy:
 class SpringPendulum:
 
     def __init__(self, equilibrium_length=0.2, start_pos=vector(0, 0, 0), end_pos=vector(0, -0.3, 0), mass=0.25,
-                 spring_constant=30., trail_retain=10000, radius=0.1, starting_velocity=vector(0, 0, 0)):
+                 spring_constant=30., trail_retain=10000, radius=0.1, starting_velocity=vector(0, 0, 0),
+                 random_force=True):
         self.spring = helix(pos=start_pos, axis=end_pos - start_pos, radius=radius, color=color.green)
         self.spring_constant = spring_constant
         self.mass = mass
@@ -74,7 +74,7 @@ class SpringPendulum:
         self.velocity = starting_velocity
         self.equilibrium_length = equilibrium_length
         self.graphs = {}
-        self.random_action = True
+        self.random_action = random_force
         self.force = vector(0, 0, 0)
         self.weight = cylinder(pos=end_pos, axis=vector(0, -radius, 0), radius=radius,
                                color=color.red,
@@ -82,7 +82,7 @@ class SpringPendulum:
 
     def random_force(self):
         if self.random_action:
-            return vector(random.random(), random.random(), random.random()) * 5E-3
+            return vector(random.uniform(-1, 1), random.uniform(-1, 1), random.uniform(-1, 1)) * 5E-3
         return vector(0, 0, 0)
 
     def kinematics(self, dt=DT):  # Euler integration
@@ -147,7 +147,7 @@ class SpringPendulum:
 test_spring = SpringPendulum(radius=0.05,
                              end_pos=change_vector_length(start_pos, start_pos.mag - 0.177),
                              mass=0.2622, spring_constant=35.77,
-                             equilibrium_length=0.177, starting_velocity=starting_velocity)
+                             equilibrium_length=0.177, starting_velocity=starting_velocity, random_force=True)
 test_spring.add_energy_graphs(total=True, potential=True, kinetic=True)
 test_spring.add_xyz_graphs(xz=True)
 
