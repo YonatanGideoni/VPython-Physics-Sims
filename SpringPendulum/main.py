@@ -31,16 +31,23 @@ spring_weightless_length = 0.18
 spring_equilibrium_length = spring_weightless_length + (effective_mass + spring_mass / 6) * g.mag / k
 rod_weights_center_of_mass = (rod_mass * rod_center_of_mass_from_hook + weight_mass * weight_center_of_mass_from_hook) \
                              / (weight_mass + rod_mass)
-center_of_mass = ((weight_mass + rod_mass) * (rod_weights_center_of_mass + spring_equilibrium_length) +
-                  spring_mass * spring_equilibrium_length / 2) \
-                 / (rod_mass + weight_mass + spring_mass)
+center_of_mass_at_equilibrium = ((weight_mass + rod_mass) * (rod_weights_center_of_mass + spring_equilibrium_length) +
+                                 spring_mass * spring_equilibrium_length / 2) \
+                                / (rod_mass + weight_mass + spring_mass)
+
+spring_length = lambda total_length: total_length - rod_length
+center_of_mass = lambda spring_length: \
+    ((weight_mass + rod_mass) * (rod_weights_center_of_mass + spring_length) + spring_mass * spring_length / 2) \
+    / (rod_mass + weight_mass + spring_mass)
 
 # STARTING TERMS #
 t = 0
 col_y = 0
 start_pos = vector(0, -0.425, -0.003)
 starting_velocity = vector(-0.02333, 0.33167, -0.105)
-starting_velocity = change_vector_length(starting_velocity, starting_velocity.mag * center_of_mass / start_pos.mag)
+starting_velocity = change_vector_length(starting_velocity,
+                                         starting_velocity.mag * center_of_mass(
+                                             spring_length(start_pos.mag)) / start_pos.mag)
 start_pos = change_vector_length(start_pos, start_pos.mag + (rod_weights_center_of_mass - button_from_hook_length))
 
 
@@ -110,7 +117,7 @@ class SpringPendulum:
     def kinematics(self, dt=DT):  # Euler integration
         self.force = self.random_force()
         if self.gravity_enabled:
-            self.force += self.effective_mass * g
+            self.force += (self.effective_mass + self.spring_mass / 6) * g
 
         self.force += -self.spring_constant * (
                 mag(self.weight_pos) - self.equilibrium_length) * self.weight_pos / mag(self.weight_pos)
