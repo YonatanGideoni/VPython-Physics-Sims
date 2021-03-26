@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from random import uniform
 from vpython import *
 import xlwt
@@ -10,7 +11,7 @@ def change_vector_length(old_vector, new_length):
 
 # CONSTANTS #
 real_dt = 0.03
-DT = 5E-3 * real_dt
+DT = 1E-2 * real_dt
 g = vector(0, -9.79234, 0)
 end_time = 1000 * real_dt
 button_from_hook_length = 0.17
@@ -79,11 +80,19 @@ class ExcelSheet:
         self.book.save(file_name + '.csv')
 
 
-class Energy:
-    def __init__(self, potential=0, kinetic=0):
-        self.total = potential + kinetic
-        self.potential = potential
-        self.kinetic = kinetic
+@dataclass
+class SpringPendulumEnergy:
+    spring: float = 0
+    gravity: float = 0
+    kinetic: float = 0
+
+    @property
+    def total(self):
+        return self.potential + self.kinetic
+
+    @property
+    def potential(self):
+        return self.spring + self.gravity
 
 
 class SpringPendulum:
@@ -97,7 +106,7 @@ class SpringPendulum:
         self.spring_mass = spring_mass
         self.weight_pos = end_pos
         self.pos = self.weight_pos
-        self.energy = Energy()
+        self.energy = SpringPendulumEnergy()
         self.gravity_enabled = True
         self.acceleration = vector(0, 0, 0)
         self.velocity = starting_velocity
@@ -162,10 +171,9 @@ class SpringPendulum:
             self.graphs['angular momentum'] = gcurve(color=color.purple)
 
     def __calculate_energy(self):
-        self.energy.potential = self.effective_mass * g.mag * self.pos.y + \
-                                0.5 * self.spring_constant * (self.weight_pos.mag - self.equilibrium_length) ** 2
+        self.energy.gravity = self.effective_mass * g.mag * self.pos.y
+        self.energy.spring = 0.5 * self.spring_constant * (self.weight_pos.mag - self.equilibrium_length) ** 2
         self.energy.kinetic = 0.5 * (self.effective_mass + self.spring_mass / 6) * self.velocity.mag2
-        self.energy.total = self.energy.kinetic + self.energy.potential
 
     def update_graph(self, t=t, graph_name='total energy'):
         if 'energy' in graph_name:
@@ -223,4 +231,4 @@ while t <= end_time + DT:
     test_spring.kinematics()
     test_spring.update_pos()
 
-data_sheet.save_file()
+# data_sheet.save_file()
