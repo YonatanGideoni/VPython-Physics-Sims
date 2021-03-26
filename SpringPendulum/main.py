@@ -118,6 +118,9 @@ class SpringPendulum:
                                color=color.red,
                                make_trail=True, retain=trail_retain, trail_color=color.white)
 
+        self.spring_energy_offset = None
+        self.gravitational_energy_offset = None
+
     def random_force(self):
         if self.random_action:
             return vector(uniform(-1, 1), uniform(-1, 1), uniform(-1, 1)) * 1E-3
@@ -151,6 +154,10 @@ class SpringPendulum:
         if potential:
             graph(title='Potential Energy Over Time', xtitle='Time[s]', ytitle='Energy[J]')
             self.graphs['potential energy'] = gcurve(color=color.cyan, label='Potential Energy')
+            graph(title='Potential Energies Over Time', xtitle='Time[s]', ytitle='Energy[J]')
+            self.graphs['potential spring energy'] = gcurve(color=color.orange, label='Potential Spring Energy')
+            self.graphs['potential gravitational energy'] = gcurve(color=color.magenta,
+                                                                   label='Potential Gravitational Energy')
 
         if kinetic:
             graph(title='Kinetic Energy Over Time', xtitle='Time[s]', ytitle='Energy[J]')
@@ -175,13 +182,22 @@ class SpringPendulum:
         self.energy.spring = 0.5 * self.spring_constant * (self.weight_pos.mag - self.equilibrium_length) ** 2
         self.energy.kinetic = 0.5 * (self.effective_mass + self.spring_mass / 6) * self.velocity.mag2
 
+        if self.spring_energy_offset is None:
+            self.spring_energy_offset = self.energy.spring
+        if self.gravitational_energy_offset is None:
+            self.gravitational_energy_offset = self.energy.gravity
+
     def update_graph(self, t=t, graph_name='total energy'):
         if 'energy' in graph_name:
             self.__calculate_energy()
-            self.graphs[graph_name].plot(pos=(t,
-                                              {'total energy': self.energy.total,
-                                               'potential energy': self.energy.potential,
-                                               'kinetic energy': self.energy.kinetic}[graph_name]))
+            self.graphs[graph_name] \
+                .plot(pos=(t,
+                           {'total energy': self.energy.total,
+                            'potential energy': self.energy.potential,
+                            'kinetic energy': self.energy.kinetic,
+                            'potential spring energy': self.energy.spring - self.spring_energy_offset,
+                            'potential gravitational energy': self.energy.gravity - self.gravitational_energy_offset}[
+                               graph_name]))
         elif graph_name == 'xy':
             self.graphs['xy'].plot(pos=(self.pos.x, self.pos.y))
         elif graph_name == 'xz':
