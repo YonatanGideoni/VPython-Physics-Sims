@@ -95,6 +95,12 @@ class SpringPendulumEnergy:
         return self.spring + self.gravity
 
 
+@dataclass
+class SpringPendulumPower:
+    spring: float = 0
+    gravity: float = 0
+
+
 class SpringPendulum:
     def __init__(self, equilibrium_length=0.2, start_pos=vector(0, 0, 0), end_pos=vector(0, -0.3, 0),
                  effective_mass=0.25, spring_mass=0.05,
@@ -106,13 +112,17 @@ class SpringPendulum:
         self.spring_mass = spring_mass
         self.weight_pos = end_pos
         self.pos = self.weight_pos
+
         self.energy = SpringPendulumEnergy()
+        self.power = SpringPendulumPower()
+
         self.gravity_enabled = True
+        self.random_action = random_force
+
         self.acceleration = vector(0, 0, 0)
         self.velocity = starting_velocity
         self.equilibrium_length = equilibrium_length
         self.graphs = {}
-        self.random_action = random_force
         self.force = vector(0, 0, 0)
         self.weight = cylinder(pos=end_pos, axis=vector(0, -radius, 0), radius=radius,
                                color=color.red,
@@ -127,15 +137,18 @@ class SpringPendulum:
         return vector(0, 0, 0)
 
     def kinematics(self, dt=DT):  # Euler integration
-        self.force = self.random_force()
-        if self.gravity_enabled:
-            self.force += (self.effective_mass + self.spring_mass / 6) * g
+        gravity = (self.effective_mass + self.spring_mass / 6) * g if self.gravity_enabled else vector(0, 0, 0)
 
-        self.force += -self.spring_constant * (
-                mag(self.weight_pos) - self.equilibrium_length) * self.weight_pos / mag(self.weight_pos)
+        spring_force = -self.spring_constant * \
+                       (mag(self.weight_pos) - self.equilibrium_length) * self.weight_pos / mag(self.weight_pos)
+        self.force = self.random_force() + gravity + spring_force
         self.acceleration = self.force / self.effective_mass
         self.velocity += self.acceleration * dt
         self.pos += self.velocity * dt
+
+        # update power
+        self.power.spring += spring_force.dot(self.velocity) * dt
+        self.power.gravity += gravity.dot(self.velocity)* dt
 
     def update_pos(self):
         self.weight_pos = self.pos
