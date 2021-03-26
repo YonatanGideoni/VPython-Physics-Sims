@@ -148,7 +148,7 @@ class SpringPendulum:
 
         # update power
         self.power.spring += spring_force.dot(self.velocity) * dt
-        self.power.gravity += gravity.dot(self.velocity)* dt
+        self.power.gravity += gravity.dot(self.velocity) * dt
 
     def update_pos(self):
         self.weight_pos = self.pos
@@ -175,6 +175,11 @@ class SpringPendulum:
         if kinetic:
             graph(title='Kinetic Energy Over Time', xtitle='Time[s]', ytitle='Energy[J]')
             self.graphs['kinetic energy'] = gcurve(color=color.magenta, label='Kinetic Energy')
+
+    def add_power_graph(self):
+        graph(title='Power Supplied By Different Forces Over Time', xtitle='Time[s]', ytitle='Power[W]')
+        self.graphs['spring power'] = gcurve(color=color.orange, label='Spring Power')
+        self.graphs['gravitational power'] = gcurve(color=color.magenta, label='Gravitational Power')
 
     def add_xyz_graphs(self, xy=False, xz=False, yz=False):
         if xy:
@@ -211,6 +216,11 @@ class SpringPendulum:
                             'potential spring energy': self.energy.spring - self.spring_energy_offset,
                             'potential gravitational energy': self.energy.gravity - self.gravitational_energy_offset}[
                                graph_name]))
+        elif 'power' in graph_name:
+            self.graphs[graph_name] \
+                .plot(pos=(t,
+                           {'spring power': self.power.spring,
+                            'gravitational power': self.power.gravity}[graph_name]))
         elif graph_name == 'xy':
             self.graphs['xy'].plot(pos=(self.pos.x, self.pos.y))
         elif graph_name == 'xz':
@@ -227,6 +237,7 @@ test_spring = SpringPendulum(radius=0.05,
                              trail_retain=600,
                              equilibrium_length=spring_equilibrium_length, starting_velocity=starting_velocity,
                              random_force=False)
+test_spring.add_power_graph()
 test_spring.add_energy_graphs(total=True, potential=True, kinetic=True)
 test_spring.add_xyz_graphs(xz=True, xy=False)
 test_spring.add_momentum_graphs(angular=True)
