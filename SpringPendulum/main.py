@@ -147,8 +147,8 @@ class SpringPendulum:
         self.pos += self.velocity * dt
 
         # update power
-        self.power.spring += spring_force.dot(self.velocity) * dt
-        self.power.gravity += gravity.dot(self.velocity) * dt
+        self.power.spring = spring_force.dot(self.velocity)
+        self.power.gravity = gravity.dot(self.velocity)
 
     def update_pos(self):
         self.weight_pos = self.pos
