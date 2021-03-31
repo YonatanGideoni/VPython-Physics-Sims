@@ -9,50 +9,62 @@ def change_vector_length(old_vector, new_length):
     return new_length * old_vector / old_vector.mag
 
 
-# CONSTANTS #
-real_dt = 0.03
-DT = 1E-2 * real_dt
-g = vector(0, -9.79234, 0)
-end_time = 1000 * real_dt
-button_from_hook_length = 0.17
-rod_length = 0.14
-rod_mass = 0.1135
-weight_mass = 0.2622 - rod_mass
-spring_mass = 0.0414
-effective_mass = weight_mass + rod_mass + spring_mass / 3
-k = 29.0237
-rod_center_of_mass_from_hook = 0.125
-big_weight_height = 0.0115
-small_weight_height = 0.0085
-weight_center_of_mass_from_hook = rod_length - (
-        2. / 3 * weight_mass * big_weight_height / 2 +
-        1. / 3 * weight_mass * (big_weight_height + small_weight_height / 2)) \
-                                  / weight_mass
-spring_weightless_length = 0.18
-spring_equilibrium_length = spring_weightless_length + (effective_mass + spring_mass / 6) * g.mag / k
-rod_weights_center_of_mass = (rod_mass * rod_center_of_mass_from_hook + weight_mass * weight_center_of_mass_from_hook) \
-                             / (weight_mass + rod_mass)
-center_of_mass_at_equilibrium = ((weight_mass + rod_mass) * (rod_weights_center_of_mass + spring_equilibrium_length) +
-                                 spring_mass * spring_equilibrium_length / 2) \
-                                / (rod_mass + weight_mass + spring_mass)
-
-spring_length = lambda total_length: total_length - rod_length
-center_of_mass = lambda spring_length: \
-    ((weight_mass + rod_mass) * (rod_weights_center_of_mass + spring_length) + spring_mass * spring_length / 2) \
-    / (rod_mass + weight_mass + spring_mass)
-
-# STARTING TERMS #
-t = 0
-col_y = 0
-start_pos = vector(0, -0.425, -0.003)
-starting_velocity = vector(-0.02333, 0.33167, -0.105)
-starting_velocity = change_vector_length(starting_velocity,
-                                         starting_velocity.mag * center_of_mass(
-                                             spring_length(start_pos.mag)) / start_pos.mag)
-start_pos = change_vector_length(start_pos, start_pos.mag + (rod_weights_center_of_mass - button_from_hook_length))
-
-
 # CLASSES #
+@dataclass
+class Constants:
+    real_dt = 0.03
+    DT = 1E-2 * real_dt
+    g = vector(0, -9.79234, 0)
+    end_time = 1000 * real_dt
+    button_from_hook_length = 0.17
+    rod_length = 0.14
+    rod_mass = 0.1135
+    weight_mass = 0.2622 - rod_mass
+    spring_mass = 0.0414
+
+    k = 29.0237
+    rod_center_of_mass_from_hook = 0.125
+    big_weight_height = 0.0115
+    small_weight_height = 0.0085
+    spring_weightless_length = 0.18
+
+    @property
+    def effective_mass(self) -> float:
+        return self.weight_mass + self.rod_mass + self.spring_mass / 3
+
+    @property
+    def spring_equilibrium_length(self) -> float:
+        return self.spring_weightless_length + (self.effective_mass + self.spring_mass / 6) * self.g.mag / self.k
+
+    @classmethod
+    def spring_length(cls, total_length):
+        return total_length - cls.rod_length
+
+    def center_of_mass(self, spring_length: float):
+        return ((self.weight_mass + self.rod_mass) * (self.rod_weights_center_of_mass + spring_length) +
+                self.spring_mass * spring_length / 2) / (self.rod_mass + self.weight_mass + self.spring_mass)
+
+    @property
+    def center_of_mass_at_equilibrium(self):
+        return ((self.weight_mass + self.rod_mass) * (self.rod_weights_center_of_mass + self.spring_equilibrium_length)
+                + self.spring_mass * self.spring_equilibrium_length / 2) / \
+               (self.rod_mass + self.weight_mass + self.spring_mass)
+
+    @property
+    def rod_weights_center_of_mass(self):
+        return (self.rod_mass * self.rod_center_of_mass_from_hook +
+                self.weight_mass * self.weight_center_of_mass_from_hook) / (self.weight_mass + self.rod_mass)
+
+    @property
+    def weight_center_of_mass_from_hook(self):
+        return self.rod_length - (2. / 3 * self.weight_mass * self.big_weight_height / 2 +
+                                  1. / 3 * self.weight_mass * (self.big_weight_height + self.small_weight_height / 2)) \
+               / self.weight_mass
+
+
+Constants = Constants()
+
+
 class ExcelSheet:
     class DataObject:
         def __init__(self, x, y, data):
@@ -138,8 +150,9 @@ class SpringPendulum:
             return vector(uniform(-1, 1), uniform(-1, 1), uniform(-1, 1)) * 1E-3
         return vector(0, 0, 0)
 
-    def kinematics(self, dt=DT):  # Euler integration
-        gravity = (self.effective_mass + self.spring_mass / 6) * g if self.gravity_enabled else vector(0, 0, 0)
+    def kinematics(self, dt=Constants.DT):  # Euler integration
+        gravity = (self.effective_mass + self.spring_mass / 6) * Constants.g if self.gravity_enabled else vector(0, 0,
+                                                                                                                 0)
 
         spring_force = -self.spring_constant * \
                        (mag(self.weight_pos) - self.equilibrium_length) * self.weight_pos / mag(self.weight_pos)
@@ -198,7 +211,7 @@ class SpringPendulum:
             self.graphs['angular momentum'] = gcurve(color=color.purple)
 
     def __calculate_energy(self):
-        self.energy.gravity = self.effective_mass * g.mag * self.pos.y
+        self.energy.gravity = self.effective_mass * Constants.g.mag * self.pos.y
         self.energy.spring = 0.5 * self.spring_constant * (self.weight_pos.mag - self.equilibrium_length) ** 2
         self.energy.kinetic = 0.5 * (self.effective_mass + self.spring_mass / 6) * self.velocity.mag2
 
@@ -207,7 +220,7 @@ class SpringPendulum:
         if self.gravitational_energy_offset is None:
             self.gravitational_energy_offset = self.energy.gravity
 
-    def update_graph(self, t=t, graph_name='total energy'):
+    def update_graph(self, t, graph_name='total energy'):
         if 'energy' in graph_name:
             self.__calculate_energy()
             self.graphs[graph_name] \
@@ -231,15 +244,28 @@ class SpringPendulum:
             self.graphs['angular momentum'].plot(pos=(t, mag(self.effective_mass * self.pos.cross(self.velocity))))
 
 
+# STARTING TERMS #
+t = 0
+col_y = 0
+start_pos = vector(0, -0.425, -0.003)
+starting_velocity = vector(-0.02333, 0.33167, -0.105)
+starting_velocity = change_vector_length(starting_velocity,
+                                         starting_velocity.mag *
+                                         Constants.center_of_mass(Constants.spring_length(start_pos.mag))
+                                         / start_pos.mag)
+start_pos = change_vector_length(start_pos, start_pos.mag +
+                                 (Constants.rod_weights_center_of_mass - Constants.button_from_hook_length))
 # ANIMATION
 
-print(f'Eq. length: {spring_equilibrium_length:.3f}[m], effective mass: {effective_mass:.3f}[kg]')
+print(f'Eq. length: {Constants.spring_equilibrium_length:.3f}[m], effective mass: {Constants.effective_mass:.3f}[kg]')
 
 spring_pendulum = SpringPendulum(radius=0.05,
                                  end_pos=start_pos,
-                                 effective_mass=effective_mass, spring_mass=spring_mass, spring_constant=k,
+                                 effective_mass=Constants.effective_mass, spring_mass=Constants.spring_mass,
+                                 spring_constant=Constants.k,
                                  trail_retain=600,
-                                 equilibrium_length=spring_equilibrium_length, starting_velocity=starting_velocity,
+                                 equilibrium_length=Constants.spring_equilibrium_length,
+                                 starting_velocity=starting_velocity,
                                  random_force=False)
 spring_pendulum.add_power_graph()
 spring_pendulum.add_energy_graphs(total=True, potential=True, kinetic=True)
@@ -251,24 +277,25 @@ data_sheet = ExcelSheet('Data')
 headers = ExcelSheet.create_data_objects(
     [[0, 0, 'x'], [1, 0, 'y'], [2, 0, 'z'], [3, 0, 't']])
 experiment_constants = ExcelSheet.create_data_objects([[5, 0, 'effective mass'], [5, 1, spring_pendulum.effective_mass],
-                                                       [6, 0, 'spring constant'], [6, 1, spring_pendulum.spring_constant],
+                                                       [6, 0, 'spring constant'],
+                                                       [6, 1, spring_pendulum.spring_constant],
                                                        [7, 0, 'equilibrium length'],
                                                        [7, 1, spring_pendulum.equilibrium_length]])
 data_sheet.write_to_sheet(headers)
 data_sheet.write_to_sheet(experiment_constants)
 
-while t <= end_time + DT:
-    if t % real_dt < DT:  # so it works with the slight floating point precision errors
+while t <= Constants.end_time + Constants.DT:
+    if t % Constants.real_dt < Constants.DT:  # so it works with the slight floating point precision errors
         col_y += 1
-        print_vector = change_vector_length(spring_pendulum.pos, spring_pendulum.pos.mag - (
-                rod_weights_center_of_mass - button_from_hook_length))
+        print_vector = change_vector_length(spring_pendulum.pos, spring_pendulum.pos.mag -
+                                            (Constants.rod_weights_center_of_mass - Constants.button_from_hook_length))
         data_list = ExcelSheet.create_data_objects(
             [[0, col_y, print_vector.x], [1, col_y, print_vector.y], [2, col_y, print_vector.z],
              [3, col_y, round(t, 2)]])
         data_sheet.write_to_sheet(data_list)
     rate(1000)
 
-    t += DT
+    t += Constants.DT
 
     # update
     spring_pendulum.update_all_graphs(t)
