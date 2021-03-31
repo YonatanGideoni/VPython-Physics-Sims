@@ -77,7 +77,9 @@ class ExcelSheet:
         return _ret_list
 
     def save_file(self, file_name='Data sheet'):
-        self.book.save(file_name + '.csv')
+        file_name += '.csv'
+        self.book.save(file_name)
+        print(f'Saved file to {file_name}')
 
 
 @dataclass
@@ -231,6 +233,8 @@ class SpringPendulum:
 
 # ANIMATION
 
+print(f'Eq. length: {spring_equilibrium_length:.3f}[m], effective mass: {effective_mass:.3f}[kg]')
+
 test_spring = SpringPendulum(radius=0.05,
                              end_pos=start_pos,
                              effective_mass=effective_mass, spring_mass=spring_mass, spring_constant=k,
@@ -271,4 +275,4 @@ while t <= end_time + DT:
     test_spring.kinematics()
     test_spring.update_pos()
 
-# data_sheet.save_file()
+data_sheet.save_file()
