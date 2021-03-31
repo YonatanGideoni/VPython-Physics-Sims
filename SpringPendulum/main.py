@@ -235,32 +235,32 @@ class SpringPendulum:
 
 print(f'Eq. length: {spring_equilibrium_length:.3f}[m], effective mass: {effective_mass:.3f}[kg]')
 
-test_spring = SpringPendulum(radius=0.05,
-                             end_pos=start_pos,
-                             effective_mass=effective_mass, spring_mass=spring_mass, spring_constant=k,
-                             trail_retain=600,
-                             equilibrium_length=spring_equilibrium_length, starting_velocity=starting_velocity,
-                             random_force=False)
-test_spring.add_power_graph()
-test_spring.add_energy_graphs(total=True, potential=True, kinetic=True)
-test_spring.add_xyz_graphs(xz=True, xy=False)
-test_spring.add_momentum_graphs(angular=True)
+spring_pendulum = SpringPendulum(radius=0.05,
+                                 end_pos=start_pos,
+                                 effective_mass=effective_mass, spring_mass=spring_mass, spring_constant=k,
+                                 trail_retain=600,
+                                 equilibrium_length=spring_equilibrium_length, starting_velocity=starting_velocity,
+                                 random_force=False)
+spring_pendulum.add_power_graph()
+spring_pendulum.add_energy_graphs(total=True, potential=True, kinetic=True)
+spring_pendulum.add_xyz_graphs(xz=True, xy=False)
+spring_pendulum.add_momentum_graphs(angular=True)
 
 # Defining the Excel data file.
 data_sheet = ExcelSheet('Data')
 headers = ExcelSheet.create_data_objects(
     [[0, 0, 'x'], [1, 0, 'y'], [2, 0, 'z'], [3, 0, 't']])
-experiment_constants = ExcelSheet.create_data_objects([[5, 0, 'effective mass'], [5, 1, test_spring.effective_mass],
-                                                       [6, 0, 'spring constant'], [6, 1, test_spring.spring_constant],
+experiment_constants = ExcelSheet.create_data_objects([[5, 0, 'effective mass'], [5, 1, spring_pendulum.effective_mass],
+                                                       [6, 0, 'spring constant'], [6, 1, spring_pendulum.spring_constant],
                                                        [7, 0, 'equilibrium length'],
-                                                       [7, 1, test_spring.equilibrium_length]])
+                                                       [7, 1, spring_pendulum.equilibrium_length]])
 data_sheet.write_to_sheet(headers)
 data_sheet.write_to_sheet(experiment_constants)
 
 while t <= end_time + DT:
     if t % real_dt < DT:  # so it works with the slight floating point precision errors
         col_y += 1
-        print_vector = change_vector_length(test_spring.pos, test_spring.pos.mag - (
+        print_vector = change_vector_length(spring_pendulum.pos, spring_pendulum.pos.mag - (
                 rod_weights_center_of_mass - button_from_hook_length))
         data_list = ExcelSheet.create_data_objects(
             [[0, col_y, print_vector.x], [1, col_y, print_vector.y], [2, col_y, print_vector.z],
@@ -271,8 +271,8 @@ while t <= end_time + DT:
     t += DT
 
     # update
-    test_spring.update_all_graphs(t)
-    test_spring.kinematics()
-    test_spring.update_pos()
+    spring_pendulum.update_all_graphs(t)
+    spring_pendulum.kinematics()
+    spring_pendulum.update_pos()
 
 data_sheet.save_file()
